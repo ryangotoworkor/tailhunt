@@ -1,0 +1,28 @@
+# build output
+/bin/
+dist/
+*.test
+coverage.out
+*.prof
+*.tsbuildinfo
+# dependencies
+node_modules/
+.venv/
+__pycache__/
+.pytest_cache/
+# local state
+.env
+*.local
+.runtime/
+var/
+# browser test output
+playwright-report/
+test-results/
+# video: recordings and rendered media never go in git
+video/out/
+video/timeline.json
+video/durations.json
+*.webm
+# docs/videos/*.mp4 are added later by the narration pipeline; local copies stay out
+frontend/public/*.mp4
+frontend/public/videos/

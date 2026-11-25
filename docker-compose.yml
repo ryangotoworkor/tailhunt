@@ -1,0 +1,73 @@
+# tailhunt: six Go services on one Postgres.
+# Host ports: gateway 8880, search 8881, inventory 8882, quote 8883,
+# profile 8884, risk 8885, Postgres 54389.
+# Always run with: docker-compose -p tailhunt ...
+name: tailhunt
+
+x-go: &go
+  image: tailhunt:dev
+  pull_policy: never # built once by the gateway service below
+  restart: unless-stopped
+  mem_limit: 48m
+  environment: &goenv
+    SEARCH_URL: http://search:8881
+    INVENTORY_URL: http://inventory:8882
+    QUOTE_URL: http://quote:8883
+    PROFILE_URL: http://profile:8884
+    RISK_URL: http://risk:8885
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    mem_limit: 192m
+    environment:
+      POSTGRES_USER: tailhunt
+      POSTGRES_PASSWORD: tailhunt # local demo database, not a secret
+      POSTGRES_DB: tailhunt
+    command: ["postgres", "-c", "shared_buffers=32MB", "-c", "max_connections=50", "-c", "work_mem=2MB"]
+    ports: ["54389:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tailhunt"]
+      interval: 2s
+      retries: 30
+
+  gateway:
+    <<: *go
+    build: .
+    command: ["gateway"]
+    ports: ["8880:8880"]
+    depends_on: [search, inventory]
+
+  search:
+    <<: *go
+    command: ["search"]
+    ports: ["8881:8881"]
+
+  inventory:
+    <<: *go
+    command: ["inventory"]
+    environment:
+      <<: *goenv
+      DATABASE_URL: postgres://tailhunt:tailhunt@postgres:5432/tailhunt?application_name=tailhunt-inventory
+      DB_MAX_OPEN: "6"
+    ports: ["8882:8882"]
+    depends_on: {postgres: {condition: service_healthy}}
+
+  quote:
+    <<: *go
+    command: ["quote"]
+    ports: ["8883:8883"]
+
+  profile:
+    <<: *go
+    command: ["profile"]
+    ports: ["8884:8884"]
+
+  risk:
+    <<: *go
+    command: ["risk"]
+    ports: ["8885:8885"]
+
+volumes:
+  pgdata:

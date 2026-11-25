@@ -1,0 +1,10 @@
+.git
+.venv
+node_modules
+frontend
+analysis
+video
+docs
+var
+.runtime
+e2e
