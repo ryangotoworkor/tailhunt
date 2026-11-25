@@ -25,6 +25,7 @@ func TestSlowQuoteShowsAsIdleInTransaction(t *testing.T) {
 	s := &Server{DB: db, Diag: diag, AppName: "tailhunt-test", Quote: &QuoteClient{URL: quoteStub(t, 600*time.Millisecond).URL, HTTP: http.DefaultClient}}
 	srv := httptest.NewServer(s.Handler())
 	defer srv.Close()
+	s.SetConfig(Legacy)
 	done := make(chan int)
 	go func() {
 		resp, _ := postHold(t, srv.URL, HoldRequest{HotelID: 11, Night: "2026-12-23", Guest: "slow"})

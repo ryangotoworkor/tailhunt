@@ -14,6 +14,8 @@ func (s *Server) mountAdmin(mux *http.ServeMux) {
 	on := func(h http.HandlerFunc) http.HandlerFunc { return s.authed("oncall", h) }
 	mux.HandleFunc("GET /api/admin/fault", on(s.proxy(http.MethodGet, func() string { return s.QuoteURL + "/admin/fault" })))
 	mux.HandleFunc("POST /api/admin/fault", on(s.proxy(http.MethodPost, func() string { return s.QuoteURL + "/admin/fault" })))
+	mux.HandleFunc("GET /api/admin/mode", on(s.proxy(http.MethodGet, func() string { return s.InventoryURL + "/admin/config" })))
+	mux.HandleFunc("POST /api/admin/mode", on(s.proxy(http.MethodPost, func() string { return s.InventoryURL + "/admin/config" })))
 	mux.HandleFunc("GET /api/admin/dbstats", on(s.proxy(http.MethodGet, func() string { return s.InventoryURL + "/debug/dbstats" })))
 	mux.HandleFunc("GET /api/admin/pg-activity", on(s.proxy(http.MethodGet, func() string { return s.InventoryURL + "/debug/pg-activity" })))
 	mux.HandleFunc("GET /api/admin/alerts", on(s.proxy(http.MethodGet, func() string { return s.PromURL + "/api/v1/alerts" })))

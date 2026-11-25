@@ -1,0 +1,21 @@
+timeout    sabotaged TestFix_AcquireTimeoutFailsFastInsteadOfQueueing        FAIL (ok)
+           incident_test.go:132: slowest availability 4237 ms with an 80 ms acquire timeout; want <= 300
+timeout    clean     TestFix_AcquireTimeoutFailsFastInsteadOfQueueing        PASS (ok)
+           incident_test.go:130: availability: n=200 p50=80.9ms p99=82.1ms err=85.50% | holds: p99=3274ms err=0.00% | pool wait_count=344 wait=81537ms
+bulkhead   sabotaged TestFix_BulkheadReservesConnectionsForAvailability      FAIL (ok)
+           incident_test.go:122: availability p99 4441.2 ms, errors 0.00% with the bulkhead
+bulkhead   clean     TestFix_BulkheadReservesConnectionsForAvailability      PASS (ok)
+           incident_test.go:120: availability: n=200 p50=1.2ms p99=3.0ms err=0.00% | holds: p99=605ms err=72.00% | pool wait_count=0 wait=0ms
+txscope    sabotaged TestFix_QuoteOutsideTxReleasesTheConnection             FAIL (ok)
+           incident_test.go:113: availability p99 3284.7 ms with quote outside the tx; want <= 100
+txscope    clean     TestFix_QuoteOutsideTxReleasesTheConnection             PASS (ok)
+           incident_test.go:111: availability: n=200 p50=1.2ms p99=3.8ms err=0.00% | holds: p99=308ms err=0.00% | pool wait_count=0 wait=0ms
+quoteguard sabotaged TestFix_QuoteGuardBoundsHoldLatencyAndOpensTheBreaker   FAIL (ok)
+           incident_test.go:151: hold 0 took 2.015951958s against a 2 s quote; the 800 ms quote timeout is not there
+quoteguard clean     TestFix_QuoteGuardBoundsHoldLatencyAndOpensTheBreaker   PASS (ok)
+           
+all        sabotaged TestFix_AllLayersKeepAvailabilityFast                   FAIL (ok)
+           incident_test.go:101: availability p99 3588.9 ms (want <= 100), errors 0.00% (want <= 1%)
+all        clean     TestFix_AllLayersKeepAvailabilityFast                   PASS (ok)
+           incident_test.go:99: availability: n=200 p50=1.3ms p99=7.0ms err=0.00% | holds: p99=313ms err=0.00% | pool wait_count=0 wait=0ms
+all sabotaged runs failed and all clean runs passed

@@ -36,11 +36,14 @@ func postHold(t *testing.T, url string, req HoldRequest) (*http.Response, Hold) 
 	return resp, h
 }
 
-func TestHoldTakesARoomAndPricesIt(t *testing.T) {
+func TestHoldTakesARoomAndPricesIt(t *testing.T) { bothModes(t, testHoldTakesARoomAndPricesIt) }
+
+func testHoldTakesARoomAndPricesIt(t *testing.T, cfg Config) {
 	db := testDB(t, 4)
 	_, _ = db.Exec(`UPDATE room_nights SET rooms_left = 5 WHERE hotel_id = 7 AND night = '2026-12-20'`)
 	s := &Server{DB: db, Quote: &QuoteClient{URL: quoteStub(t, 0).URL, HTTP: http.DefaultClient}}
 	srv := httptest.NewServer(s.Handler())
+	s.SetConfig(cfg)
 	defer srv.Close()
 	resp, h := postHold(t, srv.URL, HoldRequest{HotelID: 7, Night: "2026-12-20", Guest: "ann", Tier: "gold"})
 	if resp.StatusCode != 201 || h.ID == 0 || h.PriceCents != quote.Price(7, "2026-12-20", "gold") {
@@ -53,11 +56,14 @@ func TestHoldTakesARoomAndPricesIt(t *testing.T) {
 	}
 }
 
-func TestHoldOnTheLastRoomThenSoldOut(t *testing.T) {
+func TestHoldOnTheLastRoomThenSoldOut(t *testing.T) { bothModes(t, testHoldOnTheLastRoomThenSoldOut) }
+
+func testHoldOnTheLastRoomThenSoldOut(t *testing.T, cfg Config) {
 	db := testDB(t, 4)
 	_, _ = db.Exec(`UPDATE room_nights SET rooms_left = 1 WHERE hotel_id = 8 AND night = '2026-12-21'`)
 	s := &Server{DB: db, Quote: &QuoteClient{URL: quoteStub(t, 0).URL, HTTP: http.DefaultClient}}
 	srv := httptest.NewServer(s.Handler())
+	s.SetConfig(cfg)
 	defer srv.Close()
 	if resp, _ := postHold(t, srv.URL, HoldRequest{HotelID: 8, Night: "2026-12-21", Guest: "a"}); resp.StatusCode != 201 {
 		t.Fatalf("first hold %d", resp.StatusCode)
@@ -71,11 +77,16 @@ func TestHoldOnTheLastRoomThenSoldOut(t *testing.T) {
 }
 
 func TestSweepExpiresHoldsAndReturnsRooms(t *testing.T) {
+	bothModes(t, testSweepExpiresHoldsAndReturnsRooms)
+}
+
+func testSweepExpiresHoldsAndReturnsRooms(t *testing.T, cfg Config) {
 	db := testDB(t, 4)
 	_, _ = db.Exec(`UPDATE holds SET status = 'expired' WHERE status = 'held'`) // forget earlier tests
 	_, _ = db.Exec(`UPDATE room_nights SET rooms_left = 3 WHERE hotel_id = 9 AND night = '2026-12-22'`)
 	s := &Server{DB: db, Quote: &QuoteClient{URL: quoteStub(t, 0).URL, HTTP: http.DefaultClient}, HoldTTL: time.Millisecond}
 	srv := httptest.NewServer(s.Handler())
+	s.SetConfig(cfg)
 	defer srv.Close()
 	for _, g := range []string{"a", "b"} {
 		if resp, _ := postHold(t, srv.URL, HoldRequest{HotelID: 9, Night: "2026-12-22", Guest: g}); resp.StatusCode != 201 {
@@ -92,4 +103,12 @@ func TestSweepExpiresHoldsAndReturnsRooms(t *testing.T) {
 	if left != 3 || open != 0 {
 		t.Fatalf("rooms_left %d open holds %d; want 3 and 0", left, open)
 	}
+}
+
+// bothModes runs a correctness test against the legacy and the fixed hold
+// path: the fix must not change what a hold does, only how long it holds
+// a connection.
+func bothModes(t *testing.T, f func(*testing.T, Config)) {
+	t.Run("legacy", func(t *testing.T) { f(t, Legacy) })
+	t.Run("fixed", func(t *testing.T) { f(t, Fixed) })
 }

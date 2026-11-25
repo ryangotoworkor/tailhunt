@@ -1,0 +1,48 @@
+{
+  "rounds": 3,
+  "runs": 9,
+  "conditions": {
+    "baseline": {
+      "requests_per_run": 600,
+      "p50_ms": 2.45,
+      "p95_ms": 4.17,
+      "p99_ms": 6.94,
+      "max_ms": 13.39,
+      "error_rate": 0,
+      "p99_ms_each_round": [
+        8.07,
+        6.94,
+        6.88
+      ],
+      "hold_error_rate_median": 0
+    },
+    "before": {
+      "requests_per_run": 600,
+      "p50_ms": 2077.72,
+      "p95_ms": 9270.61,
+      "p99_ms": 10003.47,
+      "max_ms": 10007.16,
+      "error_rate": 0.0383,
+      "p99_ms_each_round": [
+        10003.45,
+        10003.47,
+        10003.83
+      ],
+      "hold_error_rate_median": 0.04
+    },
+    "after": {
+      "requests_per_run": 600,
+      "p50_ms": 2.65,
+      "p95_ms": 4.58,
+      "p99_ms": 5.91,
+      "max_ms": 31.09,
+      "error_rate": 0,
+      "p99_ms_each_round": [
+        8.78,
+        5.91,
+        5.77
+      ],
+      "hold_error_rate_median": 0
+    }
+  }
+}

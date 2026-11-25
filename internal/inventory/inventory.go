@@ -4,11 +4,14 @@
 package inventory
 
 import (
+	"context"
 	"database/sql"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
+	"github.com/ryangotoworkor/tailhunt/internal/guard"
 	"github.com/ryangotoworkor/tailhunt/internal/obs"
 	"github.com/ryangotoworkor/tailhunt/internal/platform"
 )
@@ -29,16 +32,31 @@ type Server struct {
 	HoldTTL time.Duration // how long an unpaid hold keeps the room (default 2m)
 	Diag    *sql.DB       // one-connection pool for pg_stat_activity
 	AppName string        // application_name of the main pool (default tailhunt-inventory)
+
+	cfg       configBox
+	holdSlots *guard.Bulkhead
+	breaker   *guard.Breaker
+	once      sync.Once
+}
+
+func (s *Server) init() {
+	s.once.Do(func() {
+		s.holdSlots = guard.NewBulkhead(holdSlots)
+		s.breaker = &guard.Breaker{Threshold: 5, Cooldown: 3 * time.Second}
+	})
 }
 
 // Handler mounts the routes.
 func (s *Server) Handler() *http.ServeMux {
+	s.init()
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", platform.Health)
 	mux.HandleFunc("GET /availability", s.availability)
 	mux.HandleFunc("POST /holds", s.hold)
 	mux.HandleFunc("GET /debug/dbstats", s.dbstats)
 	mux.HandleFunc("GET /debug/pg-activity", s.pgActivity)
+	mux.HandleFunc("GET /admin/config", s.configHandler)
+	mux.HandleFunc("POST /admin/config", s.configHandler)
 	return mux
 }
 
@@ -66,19 +84,36 @@ func ParseStay(r *http.Request) (city string, checkin time.Time, nights int, msg
 	return city, checkin, nights, ""
 }
 
+// acquireForAvailability is the first layer of the fix: with
+// AcquireTimeout on, a search that cannot get a connection within 80 ms
+// gets a fast 503 instead of joining a queue that may be seconds long.
+// @learn:acquire-timeout
+func (s *Server) acquireForAvailability(ctx context.Context) (*sql.Conn, error) {
+	if s.Config().AcquireTimeout {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, availAcquireTimeout)
+		defer cancel()
+	}
+	return s.acquire(ctx, "availability")
+}
+
+// @learn:end acquire-timeout
+
 func (s *Server) availability(w http.ResponseWriter, r *http.Request) {
 	city, checkin, nights, msg := ParseStay(r)
 	if msg != "" {
 		platform.Error(w, http.StatusBadRequest, msg)
 		return
 	}
-	conn, err := s.acquire(r.Context(), "availability")
+	conn, err := s.acquireForAvailability(r.Context())
 	if err != nil {
-		platform.Error(w, http.StatusServiceUnavailable, "db pool: "+err.Error())
+		platform.Error(w, http.StatusServiceUnavailable, "db pool busy: "+err.Error())
 		return
 	}
 	defer conn.Close()
-	ctx, span := obs.Tracer().Start(r.Context(), "db.query availability")
+	ctx, cancel := context.WithTimeout(r.Context(), queryTimeout)
+	defer cancel()
+	ctx, span := obs.Tracer().Start(ctx, "db.query availability")
 	defer span.End()
 	rows, err := conn.QueryContext(ctx, availabilitySQL, city, checkin.Format("2006-01-02"), nights)
 	if err != nil {

@@ -41,6 +41,9 @@ func main() {
 		Diag:  diag,
 		Quote: &inventory.QuoteClient{URL: platform.Env("QUOTE_URL", "http://localhost:8883"), HTTP: obs.Client(0)},
 	}
+	if platform.Env("INVENTORY_MODE", "fixed") == "legacy" {
+		s.SetConfig(inventory.Legacy)
+	}
 	ctx, stop := context.WithCancel(context.Background())
 	go inventory.RunSweeper(ctx, s, 10*time.Second)
 	platform.Run("inventory", ":"+platform.Env("PORT", "8882"), obs.Wrap("inventory", s.Handler()), func(c context.Context) {
