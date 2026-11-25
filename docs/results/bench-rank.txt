@@ -1,0 +1,16 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/ryangotoworkor/tailhunt/internal/search
+cpu: Apple M5 Pro
+BenchmarkRank/legacy-18         	   13034	     92024 ns/op	   59843 B/op	    2953 allocs/op
+BenchmarkRank/legacy-18         	   13036	     91781 ns/op	   59842 B/op	    2953 allocs/op
+BenchmarkRank/legacy-18         	   13111	     92408 ns/op	   59842 B/op	    2953 allocs/op
+BenchmarkRank/legacy-18         	   12464	     96974 ns/op	   59844 B/op	    2953 allocs/op
+BenchmarkRank/legacy-18         	   12579	     94712 ns/op	   59843 B/op	    2953 allocs/op
+BenchmarkRank/fixed-18          	  258699	      4192 ns/op	     136 B/op	       3 allocs/op
+BenchmarkRank/fixed-18          	  296503	      3961 ns/op	     136 B/op	       3 allocs/op
+BenchmarkRank/fixed-18          	  291628	      3986 ns/op	     136 B/op	       3 allocs/op
+BenchmarkRank/fixed-18          	  303577	      4101 ns/op	     136 B/op	       3 allocs/op
+BenchmarkRank/fixed-18          	  291806	      4137 ns/op	     136 B/op	       3 allocs/op
+PASS
+ok  	github.com/ryangotoworkor/tailhunt/internal/search	12.137s

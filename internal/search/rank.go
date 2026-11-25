@@ -37,5 +37,47 @@ func rankLegacy(rs []Result, tier string) {
 
 // @learn:end rank-legacy
 
-// Rank is the ranking the search handler uses.
-var Rank = rankLegacy
+// rankFixed orders exactly like rankLegacy without building any string:
+// it compares the fields directly, and compares names case-insensitively
+// byte by byte instead of lowering a copy of each one.
+// @learn:rank-fixed
+func rankFixed(rs []Result, _ string) {
+	sort.SliceStable(rs, func(i, j int) bool { return lessResult(&rs[i], &rs[j]) })
+}
+
+func lessResult(a, b *Result) bool {
+	if a.PriceCents != b.PriceCents {
+		return a.PriceCents < b.PriceCents
+	}
+	if a.Stars != b.Stars {
+		return a.Stars > b.Stars
+	}
+	return lessFold(a.Name, b.Name)
+}
+
+// lessFold is strings.ToLower(a) < strings.ToLower(b) for ASCII names,
+// with no allocation. Non-ASCII names fall back to the allocating form.
+func lessFold(a, b string) bool {
+	for i := 0; i < len(a) && i < len(b); i++ {
+		x, y := a[i], b[i]
+		if x >= 0x80 || y >= 0x80 {
+			return strings.ToLower(a) < strings.ToLower(b)
+		}
+		if 'A' <= x && x <= 'Z' {
+			x += 'a' - 'A'
+		}
+		if 'A' <= y && y <= 'Z' {
+			y += 'a' - 'A'
+		}
+		if x != y {
+			return x < y
+		}
+	}
+	return len(a) < len(b)
+}
+
+// @learn:end rank-fixed
+
+// Rankers are the two implementations, selectable at runtime so the same
+// binary can be profiled both ways.
+var Rankers = map[string]func([]Result, string){"legacy": rankLegacy, "fixed": rankFixed}

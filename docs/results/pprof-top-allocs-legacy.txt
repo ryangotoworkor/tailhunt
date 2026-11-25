@@ -1,0 +1,187 @@
+File: search
+Build ID: 47ab0269af4f02a0b72fff6389fe49e163009155
+Type: alloc_space
+Time: 2026-11-25 10:37:56 PST
+Duration: 10s, Total samples = 72.83MB 
+Showing nodes accounting for 72.83MB, 100% of 72.83MB total
+      flat  flat%   sum%        cum   cum%
+      11MB 15.10% 15.10%       25MB 34.33%  github.com/ryangotoworkor/tailhunt/internal/search.rankKey
+   10.50MB 14.42% 29.52%    10.50MB 14.42%  fmt.Sprintf
+    5.01MB  6.89% 36.41%     6.02MB  8.26%  encoding/json/jsontext.(*decoderState).fetch
+       4MB  5.50% 41.91%        4MB  5.50%  slices.Grow[go.shape.[]go.opentelemetry.io/otel/attribute.KeyValue,go.shape.struct { Key go.opentelemetry.io/otel/attribute.Key; Value go.opentelemetry.io/otel/attribute.Value }] (inline)
+    3.50MB  4.81% 46.71%     3.50MB  4.81%  internal/bytealg.MakeNoZero
+    3.01MB  4.13% 50.85%     3.01MB  4.13%  reflect.growslice
+       2MB  2.75% 53.60%    27.01MB 37.08%  github.com/ryangotoworkor/tailhunt/internal/search.Build
+       2MB  2.75% 56.35%        2MB  2.75%  go.opentelemetry.io/otel/sdk/trace.(*tracer).newRecordingSpan
+       2MB  2.75% 59.09%        2MB  2.75%  net/textproto.MIMEHeader.Set (inline)
+       2MB  2.75% 61.84%        3MB  4.12%  go.opentelemetry.io/otel/exporters/otlp/otlptrace/internal/tracetransform.KeyValue (inline)
+    1.50MB  2.06% 63.90%     1.50MB  2.06%  go.opentelemetry.io/otel/sdk/trace.(*recordingSpan).snapshot
+    1.50MB  2.06% 65.96%     1.50MB  2.06%  net/url.parse
+    1.34MB  1.85% 67.81%     1.34MB  1.85%  compress/flate.(*fastGen).addBlock
+       1MB  1.37% 69.18%        1MB  1.37%  go.opentelemetry.io/otel/attribute.computeDataFixed (inline)
+       1MB  1.37% 70.55%        1MB  1.37%  net/textproto.readMIMEHeader
+       1MB  1.37% 71.93%        5MB  6.87%  go.opentelemetry.io/otel/exporters/otlp/otlptrace/internal/tracetransform.span
+       1MB  1.37% 73.30%        1MB  1.37%  runtime/pprof.allFrames
+       1MB  1.37% 74.67%        2MB  2.75%  net/http.(*persistConn).roundTrip
+       1MB  1.37% 76.05%        1MB  1.37%  time.newTimer
+       1MB  1.37% 77.42%        1MB  1.37%  time.NewTimer
+       1MB  1.37% 78.79%        1MB  1.37%  go.opentelemetry.io/otel/exporters/otlp/otlptrace/internal/tracetransform.Value
+    0.72MB  0.98% 79.78%     0.72MB  0.98%  compress/flate.newFastEnc (inline)
+    0.64MB  0.88% 80.66%     1.89MB  2.59%  compress/flate.NewWriter (inline)
+    0.53MB  0.73% 81.39%     1.25MB  1.71%  compress/flate.(*compressor).init
+    0.53MB  0.73% 82.12%     0.53MB  0.73%  io.ReadAll
+    0.52MB  0.71% 82.83%     0.52MB  0.71%  google.golang.org/protobuf/proto.MarshalOptions.marshal
+    0.50MB  0.69% 83.52%     0.50MB  0.69%  encoding/json/jsontext.(*encoderState).WriteToken
+    0.50MB  0.69% 84.21%        1MB  1.38%  encoding/json/v2.makeStructArshaler.func2
+    0.50MB  0.69% 84.89%     0.50MB  0.69%  go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp/internal/semconv.HTTPClient.MetricAttributes
+    0.50MB  0.69% 85.58%     0.50MB  0.69%  encoding/json/jsontext.NewDecoder (inline)
+    0.50MB  0.69% 86.27%     0.50MB  0.69%  go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp/internal/semconv.HTTPClient.RequestTraceAttrs
+    0.50MB  0.69% 86.95%        1MB  1.37%  net/http.(*Request).Clone
+    0.50MB  0.69% 87.64%     0.50MB  0.69%  net/http.(*Request).WithContext (inline)
+    0.50MB  0.69% 88.33%        2MB  2.75%  net/http.NewRequestWithContext
+    0.50MB  0.69% 89.01%     0.50MB  0.69%  internal/profile.(*Profile).postDecode
+    0.50MB  0.69% 89.70%     0.50MB  0.69%  context.(*cancelCtx).propagateCancel
+    0.50MB  0.69% 90.39%     0.50MB  0.69%  net/http.(*Transport).getConn
+    0.50MB  0.69% 91.07%     1.50MB  2.06%  net/http.ReadResponse
+    0.50MB  0.69% 91.76%     0.50MB  0.69%  net/url.(*URL).Clone (inline)
+    0.50MB  0.69% 92.45%     0.50MB  0.69%  github.com/prometheus/client_golang/prometheus.(*Registry).Gather
+    0.50MB  0.69% 93.13%        2MB  2.75%  net/http.setRequestCancel
+    0.50MB  0.69% 93.82%    29.01MB 39.83%  github.com/ryangotoworkor/tailhunt/internal/search.(*Server).search
+    0.50MB  0.69% 94.51%     0.50MB  0.69%  go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp/internal/request.NewRespWriterWrapper (inline)
+    0.50MB  0.69% 95.19%     3.50MB  4.81%  go.opentelemetry.io/otel/exporters/otlp/otlptrace/internal/tracetransform.KeyValues
+    0.50MB  0.69% 95.88%     0.50MB  0.69%  go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp.newWrappedBody (inline)
+    0.50MB  0.69% 96.57%     0.50MB  0.69%  go.opentelemetry.io/otel/exporters/otlp/otlptrace/internal/tracetransform.status (inline)
+    0.50MB  0.69% 97.25%     0.50MB  0.69%  context.WithValue
+    0.50MB  0.69% 97.94%     0.50MB  0.69%  fmt.errorf
+    0.50MB  0.69% 98.63%     0.50MB  0.69%  go.opentelemetry.io/otel/trace.WithInstrumentationVersion (inline)
+    0.50MB  0.69% 99.31%     0.50MB  0.69%  net/http.(*Request).write
+    0.50MB  0.69%   100%     0.50MB  0.69%  net/http.(*Transport).tryPutIdleConn
+         0     0%   100%     1.25MB  1.71%  bufio.(*Writer).Flush
+         0     0%   100%     1.34MB  1.85%  compress/flate.(*Writer).Close (inline)
+         0     0%   100%     1.34MB  1.85%  compress/flate.(*compressor).close
+         0     0%   100%     1.34MB  1.85%  compress/flate.(*compressor).deflateFast
+         0     0%   100%     0.67MB  0.92%  compress/flate.(*fastEncL1).encode
+         0     0%   100%     0.67MB  0.92%  compress/flate.(*fastEncL6).encode
+         0     0%   100%     1.34MB  1.85%  compress/gzip.(*Writer).Close
+         0     0%   100%     1.89MB  2.59%  compress/gzip.(*Writer).Write
+         0     0%   100%     0.50MB  0.69%  context.WithCancelCause
+         0     0%   100%     0.50MB  0.69%  context.WithDeadline (inline)
+         0     0%   100%        1MB  1.37%  context.WithDeadlineCause
+         0     0%   100%     0.50MB  0.69%  context.WithTimeoutCause
+         0     0%   100%     0.50MB  0.69%  context.withCancel (inline)
+         0     0%   100%     9.02MB 12.39%  encoding/json.(*Decoder).Decode
+         0     0%   100%        1MB  1.38%  encoding/json.(*Encoder).Encode
+         0     0%   100%     0.50MB  0.69%  encoding/json.NewDecoder
+         0     0%   100%     6.02MB  8.26%  encoding/json/jsontext.(*Decoder).ReadValue (inline)
+         0     0%   100%     0.50MB  0.69%  encoding/json/jsontext.(*Encoder).WriteToken
+         0     0%   100%     6.02MB  8.26%  encoding/json/jsontext.(*decoderState).ReadValue
+         0     0%   100%     5.01MB  6.89%  encoding/json/jsontext.(*decoderState).consumeArray
+         0     0%   100%     0.50MB  0.69%  encoding/json/jsontext.(*decoderState).consumeNumber
+         0     0%   100%     5.01MB  6.89%  encoding/json/jsontext.(*decoderState).consumeObject
+         0     0%   100%     1.50MB  2.07%  encoding/json/jsontext.(*decoderState).consumeString
+         0     0%   100%     5.01MB  6.89%  encoding/json/jsontext.(*decoderState).consumeValue
+         0     0%   100%     4.01MB  5.51%  encoding/json/jsontext.(*decoderState).consumeWhitespace
+         0     0%   100%        1MB  1.38%  encoding/json/v2.MarshalEncode
+         0     0%   100%     3.01MB  4.13%  encoding/json/v2.Unmarshal
+         0     0%   100%        1MB  1.38%  encoding/json/v2.makeSliceArshaler.func2
+         0     0%   100%     3.01MB  4.13%  encoding/json/v2.makeSliceArshaler.func3
+         0     0%   100%     3.01MB  4.13%  encoding/json/v2.makeStructArshaler.func3
+         0     0%   100%        1MB  1.38%  encoding/json/v2.marshalEncode
+         0     0%   100%     3.01MB  4.13%  encoding/json/v2.unmarshalDecode
+         0     0%   100%     0.50MB  0.69%  fmt.Errorf (inline)
+         0     0%   100%    35.27MB 48.43%  github.com/ryangotoworkor/tailhunt/internal/obs.Wrap.func1
+         0     0%   100%    23.03MB 31.62%  github.com/ryangotoworkor/tailhunt/internal/platform.GetJSON
+         0     0%   100%     1.50MB  2.06%  github.com/ryangotoworkor/tailhunt/internal/platform.JSON
+         0     0%   100%    21.03MB 28.87%  github.com/ryangotoworkor/tailhunt/internal/platform.do
+         0     0%   100%     4.50MB  6.18%  github.com/ryangotoworkor/tailhunt/internal/search.(*Server).search.func1
+         0     0%   100%     5.50MB  7.55%  github.com/ryangotoworkor/tailhunt/internal/search.(*Server).search.func2
+         0     0%   100%    13.03MB 17.89%  github.com/ryangotoworkor/tailhunt/internal/search.(*Server).search.func3
+         0     0%   100%       25MB 34.33%  github.com/ryangotoworkor/tailhunt/internal/search.rankLegacy
+         0     0%   100%       25MB 34.33%  github.com/ryangotoworkor/tailhunt/internal/search.rankLegacy.func1
+         0     0%   100%     0.50MB  0.69%  github.com/prometheus/client_golang/prometheus.(*noTransactionGatherer).Gather
+         0     0%   100%     2.42MB  3.32%  github.com/prometheus/client_golang/prometheus/promhttp.HandlerForTransactional.func1
+         0     0%   100%     2.42MB  3.32%  github.com/prometheus/client_golang/prometheus/promhttp.InstrumentHandlerCounter.func1
+         0     0%   100%     2.42MB  3.32%  github.com/prometheus/client_golang/prometheus/promhttp.InstrumentHandlerInFlight.func1
+         0     0%   100%     0.67MB  0.92%  github.com/prometheus/client_golang/prometheus/promhttp.negotiateEncodingWriter.func3
+         0     0%   100%     1.25MB  1.71%  github.com/prometheus/common/expfmt.MetricFamilyToText
+         0     0%   100%     1.25MB  1.71%  github.com/prometheus/common/expfmt.MetricFamilyToText.func1
+         0     0%   100%     1.25MB  1.71%  github.com/prometheus/common/expfmt.NewEncoder.func7
+         0     0%   100%     1.25MB  1.71%  github.com/prometheus/common/expfmt.encoderCloser.Encode
+         0     0%   100%     9.50MB 13.05%  go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp.(*Transport).RoundTrip
+         0     0%   100%    40.78MB 55.99%  go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp.(*middleware).serveHTTP
+         0     0%   100%        1MB  1.37%  go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp.(*wrappedBody).Read
+         0     0%   100%        1MB  1.37%  go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp.(*wrappedBody).recordMetricsOnce
+         0     0%   100%    40.78MB 55.99%  go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp.NewMiddleware.func2.1
+         0     0%   100%     0.50MB  0.69%  go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp.newTracer
+         0     0%   100%        1MB  1.37%  go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp/internal/semconv.HTTPClient.MetricOptions
+         0     0%   100%     0.50MB  0.69%  go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp/internal/semconv.HTTPServer.RecordMetrics
+         0     0%   100%        1MB  1.37%  go.opentelemetry.io/otel/attribute.NewSet (inline)
+         0     0%   100%        1MB  1.37%  go.opentelemetry.io/otel/attribute.NewSetWithFiltered
+         0     0%   100%        1MB  1.37%  go.opentelemetry.io/otel/attribute.newSet
+         0     0%   100%     6.02MB  8.27%  go.opentelemetry.io/otel/exporters/otlp/otlptrace.(*Exporter).ExportSpans
+         0     0%   100%        5MB  6.87%  go.opentelemetry.io/otel/exporters/otlp/otlptrace/internal/tracetransform.Spans
+         0     0%   100%     0.52MB  0.71%  go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp.(*client).UploadTraces
+         0     0%   100%     0.52MB  0.71%  go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp.(*client).marshalRequest
+         0     0%   100%     0.52MB  0.71%  go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp.(*client).newRequest
+         0     0%   100%     0.50MB  0.69%  go.opentelemetry.io/otel/propagation.HeaderCarrier.Set
+         0     0%   100%     0.50MB  0.69%  go.opentelemetry.io/otel/propagation.TraceContext.Extract
+         0     0%   100%     0.50MB  0.69%  go.opentelemetry.io/otel/propagation.TraceContext.Inject
+         0     0%   100%     6.52MB  8.95%  go.opentelemetry.io/otel/sdk/trace.(*batchSpanProcessor).exportSpans
+         0     0%   100%     6.52MB  8.95%  go.opentelemetry.io/otel/sdk/trace.(*batchSpanProcessor).processQueue
+         0     0%   100%     1.50MB  2.06%  go.opentelemetry.io/otel/sdk/trace.(*recordingSpan).End
+         0     0%   100%        4MB  5.50%  go.opentelemetry.io/otel/sdk/trace.(*recordingSpan).SetAttributes
+         0     0%   100%        2MB  2.75%  go.opentelemetry.io/otel/sdk/trace.(*tracer).Start
+         0     0%   100%        2MB  2.75%  go.opentelemetry.io/otel/sdk/trace.(*tracer).newSpan
+         0     0%   100%     6.52MB  8.95%  go.opentelemetry.io/otel/sdk/trace.NewBatchSpanProcessor.func2
+         0     0%   100%     0.50MB  0.69%  go.opentelemetry.io/otel/trace.ContextWithRemoteSpanContext
+         0     0%   100%     0.50MB  0.69%  go.opentelemetry.io/otel/trace.ContextWithSpan (inline)
+         0     0%   100%     0.50MB  0.69%  go.opentelemetry.io/otel/trace.ContextWithSpanContext (inline)
+         0     0%   100%     0.52MB  0.71%  google.golang.org/protobuf/proto.Marshal
+         0     0%   100%     1.03MB  1.42%  internal/profile.Parse
+         0     0%   100%     0.50MB  0.69%  internal/profile.parseUncompressed
+         0     0%   100%    11.50MB 15.80%  net/http.(*Client).Do (inline)
+         0     0%   100%    11.50MB 15.80%  net/http.(*Client).do
+         0     0%   100%    11.50MB 15.80%  net/http.(*Client).send
+         0     0%   100%    34.77MB 47.75%  net/http.(*ServeMux).ServeHTTP
+         0     0%   100%        3MB  4.12%  net/http.(*Transport).RoundTrip
+         0     0%   100%        3MB  4.12%  net/http.(*Transport).roundTrip
+         0     0%   100%        1MB  1.37%  net/http.(*cancelTimerBody).Read
+         0     0%   100%    40.78MB 55.99%  net/http.(*conn).serve
+         0     0%   100%        2MB  2.75%  net/http.(*persistConn).readLoop
+         0     0%   100%     0.50MB  0.69%  net/http.(*persistConn).readLoop.func2
+         0     0%   100%     0.50MB  0.69%  net/http.(*persistConn).readLoop.func5 (inline)
+         0     0%   100%     1.50MB  2.06%  net/http.(*persistConn).readResponse
+         0     0%   100%     0.50MB  0.69%  net/http.(*persistConn).writeLoop
+         0     0%   100%    40.78MB 55.99%  net/http.HandlerFunc.ServeHTTP
+         0     0%   100%        2MB  2.75%  net/http.Header.Set (inline)
+         0     0%   100%     0.50MB  0.69%  net/http.cloneURL (inline)
+         0     0%   100%    11.50MB 15.80%  net/http.send
+         0     0%   100%    40.78MB 55.99%  net/http.serverHandler.ServeHTTP
+         0     0%   100%     3.34MB  4.59%  net/http/pprof.Index
+         0     0%   100%     3.34MB  4.59%  net/http/pprof.collectProfile
+         0     0%   100%     3.34MB  4.59%  net/http/pprof.handler.ServeHTTP
+         0     0%   100%     3.34MB  4.59%  net/http/pprof.handler.serveDeltaProfile
+         0     0%   100%        1MB  1.37%  net/textproto.(*Reader).ReadMIMEHeader (inline)
+         0     0%   100%     1.50MB  2.06%  net/url.Parse
+         0     0%   100%     3.01MB  4.13%  reflect.Value.Grow
+         0     0%   100%     3.01MB  4.13%  reflect.Value.grow
+         0     0%   100%     2.31MB  3.18%  runtime/pprof.(*Profile).WriteTo
+         0     0%   100%     1.64MB  2.25%  runtime/pprof.(*profileBuilder).appendLocsForStack
+         0     0%   100%     0.67MB  0.92%  runtime/pprof.(*profileBuilder).build
+         0     0%   100%     0.64MB  0.88%  runtime/pprof.(*profileBuilder).emitLocation
+         0     0%   100%     0.64MB  0.88%  runtime/pprof.(*profileBuilder).flush
+         0     0%   100%     2.31MB  3.18%  runtime/pprof.writeAlloc
+         0     0%   100%     2.31MB  3.18%  runtime/pprof.writeHeapInternal
+         0     0%   100%     2.31MB  3.18%  runtime/pprof.writeHeapProto
+         0     0%   100%       25MB 34.33%  sort.Slice
+         0     0%   100%     1.50MB  2.06%  sort.choosePivot_func
+         0     0%   100%    12.50MB 17.16%  sort.insertionSort_func
+         0     0%   100%     1.50MB  2.06%  sort.median_func
+         0     0%   100%     1.50MB  2.06%  sort.order2_func (inline)
+         0     0%   100%    10.50MB 14.42%  sort.partition_func
+         0     0%   100%       25MB 34.33%  sort.pdqsort_func
+         0     0%   100%     3.50MB  4.81%  strings.(*Builder).Grow
+         0     0%   100%     3.50MB  4.81%  strings.(*Builder).grow
+         0     0%   100%     3.50MB  4.81%  strings.ToLower
+         0     0%   100%     6.52MB  8.95%  sync.(*WaitGroup).Go.func1
+         0     0%   100%        1MB  1.37%  time.AfterFunc

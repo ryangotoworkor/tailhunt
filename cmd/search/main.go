@@ -17,5 +17,8 @@ func main() {
 		InventoryURL: platform.Env("INVENTORY_URL", "http://localhost:8882"),
 		Client:       obs.Client(10 * time.Second),
 	}
+	if impl := platform.Env("SEARCH_RANK", "fixed"); !s.SetRank(impl) {
+		panic("SEARCH_RANK must be legacy or fixed")
+	}
 	platform.Run("search", ":"+platform.Env("PORT", "8881"), obs.Wrap("search", s.Handler()), stop)
 }

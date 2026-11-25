@@ -1,0 +1,6 @@
+{"impl": "legacy", "round": 1, "requests": 602, "alloc_bytes": 80300000.0, "bytes_per_request": 133389, "rank_cum_bytes": 20500000.0, "rank_share": 0.255}
+{"impl": "fixed", "round": 1, "requests": 602, "alloc_bytes": 45423330.0, "bytes_per_request": 75454, "rank_cum_bytes": 512020.0, "rank_share": 0.011}
+{"impl": "legacy", "round": 2, "requests": 602, "alloc_bytes": 82100000.0, "bytes_per_request": 136379, "rank_cum_bytes": 23000000.0, "rank_share": 0.28}
+{"impl": "fixed", "round": 2, "requests": 602, "alloc_bytes": 56940000.0, "bytes_per_request": 94585, "rank_cum_bytes": 0.0, "rank_share": 0.0}
+{"impl": "legacy", "round": 3, "requests": 602, "alloc_bytes": 72830000.0, "bytes_per_request": 120980, "rank_cum_bytes": 25000000.0, "rank_share": 0.343}
+{"impl": "fixed", "round": 3, "requests": 602, "alloc_bytes": 49556840.0, "bytes_per_request": 82320, "rank_cum_bytes": 0.0, "rank_share": 0.0}

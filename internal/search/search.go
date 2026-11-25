@@ -5,10 +5,12 @@ package search
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/url"
 	"sync"
+	"sync/atomic"
 
 	"github.com/ryangotoworkor/tailhunt/internal/inventory"
 	"github.com/ryangotoworkor/tailhunt/internal/platform"
@@ -20,6 +22,24 @@ import (
 type Server struct {
 	ProfileURL, RiskURL, InventoryURL string
 	Client                            *http.Client
+
+	rank atomic.Pointer[string] // "legacy" or "fixed" (default)
+}
+
+// SetRank picks the ranking implementation ("legacy" or "fixed").
+func (s *Server) SetRank(impl string) bool {
+	if _, ok := Rankers[impl]; !ok {
+		return false
+	}
+	s.rank.Store(&impl)
+	return true
+}
+
+func (s *Server) rankImpl() string {
+	if p := s.rank.Load(); p != nil {
+		return *p
+	}
+	return "fixed"
 }
 
 // Response is the search answer.
@@ -34,6 +54,8 @@ func (s *Server) Handler() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", platform.Health)
 	mux.HandleFunc("GET /search", s.search)
+	mux.HandleFunc("GET /admin/rank", s.rankHandler)
+	mux.HandleFunc("POST /admin/rank", s.rankHandler)
 	return mux
 }
 
@@ -72,13 +94,13 @@ func (s *Server) search(w http.ResponseWriter, r *http.Request) {
 		passError(w, err)
 		return
 	}
-	platform.JSON(w, http.StatusOK, Build(city, prof, score, avail.Hotels))
+	platform.JSON(w, http.StatusOK, Build(city, prof, score, avail.Hotels, Rankers[s.rankImpl()]))
 }
 
 // @learn:end search-fanout
 
 // Build prices and ranks the hotels inventory returned.
-func Build(city string, prof profile.Profile, score risk.Score, hotels []inventory.Hotel) Response {
+func Build(city string, prof profile.Profile, score risk.Score, hotels []inventory.Hotel, rank func([]Result, string)) Response {
 	rs := make([]Result, 0, len(hotels))
 	for _, h := range hotels {
 		rs = append(rs, Result{
@@ -88,7 +110,7 @@ func Build(city string, prof profile.Profile, score risk.Score, hotels []invento
 			PayAtHotel:  !score.Flagged,
 		})
 	}
-	Rank(rs, prof.Tier)
+	rank(rs, prof.Tier)
 	return Response{City: city, Tier: prof.Tier, Results: rs}
 }
 
@@ -106,4 +128,15 @@ func passError(w http.ResponseWriter, err error) {
 	default:
 		platform.Error(w, http.StatusBadGateway, err.Error())
 	}
+}
+
+func (s *Server) rankHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		var in struct{ Impl string }
+		if err := json.NewDecoder(r.Body).Decode(&in); err != nil || !s.SetRank(in.Impl) {
+			platform.Error(w, http.StatusBadRequest, `send {"impl":"legacy|fixed"}`)
+			return
+		}
+	}
+	platform.JSON(w, http.StatusOK, map[string]string{"impl": s.rankImpl()})
 }
