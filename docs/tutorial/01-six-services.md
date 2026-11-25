@@ -34,7 +34,7 @@ browser ──> gateway ──> search ──┬──> profile
 
 假设：后面的事故一定和 inventory 的连接池有关。所以从第一行代码起就把池子的上限钉死。
 
-看 [db.go#pool-open](../../internal/inventory/db.go)：`SetMaxOpenConns(maxOpen)`。
+看 [db.go#pool-open](../../internal/inventory/db.go#pool-open)：`SetMaxOpenConns(maxOpen)`。
 compose 里 `DB_MAX_OPEN=6`。也就是说，inventory 同一时刻最多只有六条连接在干活。
 第七个请求来了，不会报错，而是**在 `database/sql` 里面排队等**。
 这一章它还看不出问题，因为每个查询只要一两毫秒。
@@ -61,7 +61,7 @@ $ curl -s 'localhost:8880/api/search?city=kyoto'
 
 ## 扇出是怎么写的？
 
-看 [search.go#search-fanout](../../internal/search/search.go)。
+看 [search.go#search-fanout](../../internal/search/search.go#search-fanout)。
 三路请求用三个 goroutine 并发发出，`wg.Wait()` 等齐。
 所以一次搜索的耗时 ≈ 三路里**最慢的那一路**。
 记住这一点：后面 inventory 一慢，整个搜索就跟着慢，profile 和 risk 再快也没用。
@@ -71,7 +71,7 @@ $ curl -s 'localhost:8880/api/search?city=kyoto'
 
 ## 排序那段为什么写得这么啰嗦？
 
-[rank.go#rank-legacy](../../internal/search/rank.go) 是「第一版上线的写法」：比较函数里每次都 `fmt.Sprintf` 拼一个字符串当排序键。
+[rank.go#rank-legacy](../../internal/search/rank.go#rank-legacy) 是「第一版上线的写法」：比较函数里每次都 `fmt.Sprintf` 拼一个字符串当排序键。
 它是对的，测试也过。但它在热路径上每个请求分配几百个字符串。
 这一章先不动它，第 6 章用 pprof 把它找出来再修。
 

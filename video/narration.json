@@ -1,0 +1,48 @@
+[
+  {"id": "s01", "part": "p0-overview", "text": "这一组视频讲一次真实的排查。搜索的九十九分位延迟突然飙高，我们一步一步找到原因，再把它修好。", "action": "open", "highlight": ".main h1"},
+  {"id": "s02", "part": "p0-overview", "text": "左边这一列是排查的九个步骤。每一步都对应后端此刻真的在做的一件事，页面只是把结果读出来。", "action": "show", "highlight": "[data-testid=trail]"},
+  {"id": "s03", "part": "p0-overview", "text": "按下这个按钮，系统会在六个服务上真的制造一次连接池耗尽。下面每一段讲其中一步。", "action": "show", "highlight": "[data-testid=learn-start]"},
+
+  {"id": "s04", "part": "p1-alert", "text": "这一段讲告警。点提交样例，后端先健康地跑八秒，再让报价服务每次慢三百毫秒。", "action": "click:[data-testid=learn-start]", "highlight": "[data-testid=stage-alert] .dot", "shape": "circle"},
+  {"id": "s05", "part": "p1-alert", "text": "等了十来秒，告警响了。先看这里，名字是搜索延迟过高，状态是 firing。", "action": "wait:alert", "highlight": "[data-testid=alert-name]"},
+  {"id": "s06", "part": "p1-alert", "text": "再看摘要。九十九分位已经到了好几秒，而阈值只有三百毫秒。", "action": "show", "highlight": "[data-testid=alert-summary]"},
+  {"id": "s07", "part": "p1-alert", "text": "同时在响的还有库存连接池饱和。两条告警同一刻触发，所以先假设它们是同一件事。", "action": "show", "highlight": "[data-testid=alert-firing]"},
+  {"id": "s08", "part": "p1-alert", "text": "告警只告诉我们超了。下一步去看曲线，确定尖峰从哪一秒开始。", "action": "click:[data-testid=learn-next]", "highlight": "[data-testid=stage-p99] .dot", "shape": "circle"},
+
+  {"id": "s09", "part": "p2-trace", "text": "这一段讲曲线和 trace。先看故障前，每秒的九十九分位只有几毫秒。", "action": "wait:p99", "highlight": "[data-testid=p99-calm]", "shape": "circle"},
+  {"id": "s10", "part": "p2-trace", "text": "注入故障以后，红线冲到好几秒。连绿色的中位数都上去了，说明大部分请求在排同一个队。", "action": "show", "highlight": "[data-testid=p99-chart]"},
+  {"id": "s11", "part": "p2-trace", "text": "知道了时间，下一步拿尖峰里最慢的一条请求，看它的时间花在哪一段。", "action": "click:[data-testid=learn-next]", "highlight": "[data-testid=stage-trace] .dot", "shape": "circle"},
+  {"id": "s12", "part": "p2-trace", "text": "这是这条请求穿过六个服务的瀑布图。", "action": "wait:trace", "highlight": "[data-testid=waterfall]"},
+  {"id": "s13", "part": "p2-trace", "text": "看这一行，pool acquire，就是在等一条数据库连接。它几乎占满了整条请求。", "action": "show", "highlight": "[data-testid=span-acquire]"},
+  {"id": "s14", "part": "p2-trace", "text": "再看真正的查询，只有零点几毫秒。所以慢的不是 SQL，而是拿不到连接。", "action": "show", "highlight": "[data-testid=waterfall] .r >> text=db.query"},
+  {"id": "s15", "part": "p2-trace", "text": "这段等待能单独看到，是因为代码里显式地拿连接，并且打了一个 span。看源码，链接指向那几行。", "action": "source:[data-testid=src-list] a[data-anchor=pool-acquire]", "highlight": "[data-testid=src-list] a[data-anchor=pool-acquire]"},
+  {"id": "s16", "part": "p2-trace", "text": "trace 说在等连接。下一步，用连接池自己的计数器来证实。", "action": "click:[data-testid=learn-next]", "highlight": "[data-testid=stage-dbstats] .dot", "shape": "circle"},
+
+  {"id": "s17", "part": "p3-pool", "text": "这一段讲连接池。正在用的连接是六条，上限也是六条，池子满了。", "action": "wait:dbstats", "highlight": "[data-testid=db-inuse]"},
+  {"id": "s18", "part": "p3-pool", "text": "一秒之内，等待次数又多了几十次。满了，而且一直有人在排队，这才能叫连接池耗尽。", "action": "show", "highlight": "[data-testid=db-waits]"},
+  {"id": "s19", "part": "p3-pool", "text": "那是谁占着这六条连接？下一步去数据库那一侧看。", "action": "click:[data-testid=learn-next]", "highlight": "[data-testid=stage-culprit] .dot", "shape": "circle"},
+  {"id": "s20", "part": "p3-pool", "text": "每条连接的状态都是 idle in transaction。事务开着，数据库却没在执行任何语句，它在等应用。", "action": "wait:culprit", "highlight": "[data-testid=pg-row] .pill >> nth=0"},
+  {"id": "s21", "part": "p3-pool", "text": "最后一条语句是锁房的 select for update。说明锁房的代码锁住一行之后，跑去做了别的事。", "action": "show", "highlight": "[data-testid=pg-row] code >> nth=0"},
+  {"id": "s22", "part": "p3-pool", "text": "再看配置，报价在事务外面这一项是 false。锁房在事务里调报价，报价慢三百毫秒，连接就被攥三百毫秒。", "action": "show", "highlight": "[data-testid=cfg-txscope]", "shape": "circle"},
+  {"id": "s23", "part": "p3-pool", "text": "点开原始数据。这就是后端这一刻返回的 JSON，不是前端编出来的。原因找到了，下一段修它。", "action": "click:[data-testid=raw-json] summary", "highlight": "[data-testid=raw-json] pre"},
+
+  {"id": "s24", "part": "p4-fix", "text": "这一段讲修复。点下一步，后端在运行中切到修复版。", "action": "click:[data-testid=learn-next]", "highlight": "[data-testid=stage-fix] .dot", "shape": "circle"},
+  {"id": "s25", "part": "p4-fix", "text": "四层修复都打开了。最关键的是这一行：报价挪到事务外面，事务里不再有网络调用。", "action": "wait:fix", "highlight": "[data-testid=fix-quote_outside_tx]"},
+  {"id": "s26", "part": "p4-fix", "text": "看源码。修复后的锁房先报价，再拿连接，事务里只剩一条带条件的更新。", "action": "source:[data-testid=src-list] a[data-anchor=hold-fixed]", "highlight": "[data-testid=src-list] a[data-anchor=hold-fixed]"},
+  {"id": "s27", "part": "p4-fix", "text": "修好了吗？不关故障，在报价依然慢的情况下重新测量。", "action": "click:[data-testid=learn-next]", "highlight": "[data-testid=stage-verify] .dot", "shape": "circle"},
+  {"id": "s28", "part": "p4-fix", "text": "修复前，尖峰里的九十九分位是好几秒。", "action": "wait:verify", "highlight": "[data-testid=p99-before]", "shape": "circle"},
+  {"id": "s29", "part": "p4-fix", "text": "修复后，同样的流量，同样慢的报价，九十九分位降回了几十毫秒以内。", "action": "show", "highlight": "[data-testid=p99-after]", "shape": "circle"},
+  {"id": "s30", "part": "p4-fix", "text": "而且修复后这十秒里，连接池一次等待都没有。延迟和计数器两边都说明，修的是对的地方。", "action": "show", "highlight": "[data-testid=verify-waits]", "shape": "circle"},
+
+  {"id": "s31", "part": "p5-analysis", "text": "这一段讲告警历史。这一次修好了，可半年里这一类故障到底有多严重？", "action": "click:[data-testid=learn-next]", "highlight": "[data-testid=stage-history] .dot", "shape": "circle"},
+  {"id": "s32", "part": "p5-analysis", "text": "先说清楚，这份半年的数据是合成的，用固定的种子生成，没有任何真实公司的数据。", "action": "wait:history", "highlight": "[data-testid=evidence] .pill.amber"},
+  {"id": "s33", "part": "p5-analysis", "text": "按总影响排，连接池耗尽是第一。可是按次数，它只排第二。", "action": "show", "highlight": "[data-testid=cause-db_pool_exhaustion]"},
+  {"id": "s34", "part": "p5-analysis", "text": "再看这条规则。它不报假警，但每次事故要响六次多，所以建议加上重复间隔。", "action": "show", "highlight": "[data-testid=rule-refires]", "shape": "circle"},
+  {"id": "s35", "part": "p5-analysis", "text": "在完整的分析页里，告警最多的是磁盘使用率，九成以上是噪音。只看告警数量，精力就会花错地方。", "action": "goto:/analysis", "highlight": "[data-testid=rule-DiskUsageHigh]"},
+
+  {"id": "s36", "part": "p6-runbook", "text": "最后一段讲 runbook。回到排查页，点最后一步。", "action": "goto:/learn", "highlight": "[data-testid=learn-next]"},
+  {"id": "s37", "part": "p6-runbook", "text": "刚才做过的每一步，都对应 runbook 里的一条。", "action": "click:[data-testid=learn-next]", "highlight": "[data-testid=stage-runbook] .dot", "shape": "circle"},
+  {"id": "s38", "part": "p6-runbook", "text": "每一条都写清楚三件事：看什么，看到什么说明什么，下一步去哪。", "action": "wait:runbook", "highlight": "[data-testid=runbook-steps]"},
+  {"id": "s39", "part": "p6-runbook", "text": "点开完整的 runbook。比如第四步，怎么确认是连接池：占满，并且等待在涨，并且 trace 里等在拿连接，三条都要满足。", "action": "click:[data-testid=runbook-link]", "highlight": ".doc h2 >> nth=3"},
+  {"id": "s40", "part": "p6-runbook", "text": "总结一下。告警定时间，trace 定位置，连接池计数器和数据库会话定原因。修复以后，在故障还开着的时候再验证一次。", "action": "show", "highlight": ".doc h1"}
+]

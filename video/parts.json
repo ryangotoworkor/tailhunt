@@ -1,0 +1,9 @@
+[
+  {"part": "p0-overview", "title": "这次排查讲什么", "stage": "", "stages": [], "chapter": "01-six-services"},
+  {"part": "p1-alert", "title": "告警触发", "stage": "alert", "stages": ["alert"], "chapter": "03-observability"},
+  {"part": "p2-trace", "title": "p99 曲线和一条慢 trace", "stage": "p99", "stages": ["p99", "trace"], "chapter": "04-reproduce-the-incident"},
+  {"part": "p3-pool", "title": "连接池和占着连接的事务", "stage": "dbstats", "stages": ["dbstats", "culprit"], "chapter": "04-reproduce-the-incident"},
+  {"part": "p4-fix", "title": "打开修复，故障不关再测一次", "stage": "fix", "stages": ["fix", "verify"], "chapter": "05-fix-in-layers"},
+  {"part": "p5-analysis", "title": "半年告警历史里的排名（合成数据）", "stage": "history", "stages": ["history"], "chapter": "07-log-and-alert-analysis"},
+  {"part": "p6-runbook", "title": "沉淀成 runbook", "stage": "runbook", "stages": ["runbook"], "chapter": "08-runbook-and-teaching-mode"}
+]

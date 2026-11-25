@@ -11,7 +11,7 @@
 
 第一个问题用这个仓库自己压测产生的请求日志回答；第二个用**合成的**半年告警数据回答。
 
-> 告警数据是合成的。[gen_alerts.py](../../analysis/gen_alerts.py) 用固定种子 20261125 生成，没有任何真实公司的数据。测试会检查仓库里的 CSV 和用种子重新生成的一字不差。
+> 告警数据是合成的。[gen_alerts.py#alert-causes](../../analysis/gen_alerts.py#alert-causes) 用固定种子 20261125 生成，没有任何真实公司的数据。测试会检查仓库里的 CSV 和用种子重新生成的一字不差。
 
 工具：SQL 用 DuckDB 跑，写法按 Spark SQL / HiveQL 的子集（`percentile_approx`、`unix_timestamp`，靠 [00_dialect.sql](../../analysis/sql/00_dialect.sql) 里两个 macro 对上）；pandas 做后处理和出图。
 为什么不直接上 Spark？笔记本上跑六个月、三千条告警，DuckDB 一秒钟出结果；SQL 本身换到 `spark.sql(...)` 只要改建表那一步。
@@ -20,10 +20,10 @@
 
 ### 怎么把两个服务的日志拼起来？
 
-每个服务每个请求写一行 JSON（第 3 章的 [reqlog.go#reqlog-line](../../internal/obs/reqlog.go)）。
+每个服务每个请求写一行 JSON（第 3 章的 [reqlog.go#reqlog-line](../../internal/obs/reqlog.go#reqlog-line)）。
 网关那行有端到端耗时，inventory 那行有 `db_wait_ms`。它们靠 `trace_id` 对上：trace 上下文每一跳都往下传。
 
-[60_requestlog.sql#sql-trace-join](../../analysis/sql/60_requestlog.sql) 就是一个按 `trace_id` 的 join。
+[60_requestlog.sql#sql-trace-join](../../analysis/sql/60_requestlog.sql#sql-trace-join) 就是一个按 `trace_id` 的 join。
 
 ### 跑出来是什么（本仓库 bench.sh 产生的日志）
 
@@ -32,7 +32,7 @@ $ .venv/bin/python analysis/requestlog.py
 97940 lines, 14/48 spike windows; corr 1.0; slow searches spent 0.999 of their time waiting for a connection
 ```
 
-- 四十八个十秒窗口里，十四个 p99 超过三百毫秒（[60_requestlog.sql#sql-spike-windows](../../analysis/sql/60_requestlog.sql)）；
+- 四十八个十秒窗口里，十四个 p99 超过三百毫秒（[60_requestlog.sql#sql-spike-windows](../../analysis/sql/60_requestlog.sql#sql-spike-windows)）；
 - 尖峰窗口里，网关耗时的 **99.9%** 是 inventory 在等连接；平静窗口里是 0.2%；
 - 网关耗时和等连接时间的相关系数，四舍五入到三位是 1.0。
 
@@ -46,13 +46,13 @@ $ .venv/bin/python analysis/requestlog.py
 ### 第一步：重复告警为什么要先合并？
 
 同一条规则在一次故障里会反复触发（flapping）。三千零四十九次 fire，人感受到的只是一千五百一十一次「那个告警又响了」。
-[10_episodes.sql#sql-episodes](../../analysis/sql/10_episodes.sql) 用经典的 gaps-and-islands：同一个 fingerprint，上一次 resolve 后三十分钟内又 fire，算同一个 episode。
+[10_episodes.sql#sql-episodes](../../analysis/sql/10_episodes.sql#sql-episodes) 用经典的 gaps-and-islands：同一个 fingerprint，上一次 resolve 后三十分钟内又 fire，算同一个 episode。
 平均每个 episode 两次 fire。
 
 ### 第二步：告警和事故怎么关联？
 
 告警流里没有 incident_id（现实里也很少有人手动把每条告警挂到事故上）。
-[20_link.sql#sql-link](../../analysis/sql/20_link.sql) 按时间关联：episode 开始于事故开始前十分钟到事故恢复之间。几个事故重叠时，优先同一个服务，再优先最近开始的。
+[20_link.sql#sql-link](../../analysis/sql/20_link.sql#sql-link) 按时间关联：episode 开始于事故开始前十分钟到事故恢复之间。几个事故重叠时，优先同一个服务，再优先最近开始的。
 没关联上的 episode 就是噪音。
 
 关联准不准？生成器另外写了一份 `alerts_truth.csv`，SQL 从不读它，只给测试对答案：
@@ -62,7 +62,7 @@ $ .venv/bin/python analysis/requestlog.py
 
 ### 第三步：按什么排名？
 
-[30_cause_ranking.sql#sql-cause-ranking](../../analysis/sql/30_cause_ranking.sql) 同时算了两种排名：
+[30_cause_ranking.sql#sql-cause-ranking](../../analysis/sql/30_cause_ranking.sql#sql-cause-ranking) 同时算了两种排名：
 
 | 原因 | 次数 | 按次数排 | 总影响（小时） | 按影响排 |
 |---|---:|---:|---:|---:|
@@ -79,8 +79,8 @@ $ .venv/bin/python analysis/requestlog.py
 
 ### 第四步：哪些规则该调？
 
-[40_rule_quality.sql#sql-rule-quality](../../analysis/sql/40_rule_quality.sql) 给每条规则算：fire 次数、合并后的 episode、每个 episode 平均 fire 几次、噪音率、抓到多少事故、检测延迟。
-[analyze_alerts.py#rule-advice](../../analysis/analyze_alerts.py) 把它们翻译成动作：
+[40_rule_quality.sql#sql-rule-quality](../../analysis/sql/40_rule_quality.sql#sql-rule-quality) 给每条规则算：fire 次数、合并后的 episode、每个 episode 平均 fire 几次、噪音率、抓到多少事故、检测延迟。
+[analyze_alerts.py#rule-advice](../../analysis/analyze_alerts.py#rule-advice) 把它们翻译成动作：
 
 - `DiskUsageHigh`：fire 最多（一千零三十五次），**94% 是噪音**（日志轮转时短暂超过 85%）→ 降级成 ticket 或提高阈值；
 - `InventoryDBPoolSaturated`：零噪音，但每个 episode 平均 fire 六次多 → 加 `for` / `repeat_interval`，别让值班被同一件事叫醒六次；
@@ -92,7 +92,7 @@ $ .venv/bin/python analysis/requestlog.py
 
 ## 这个分析怎么证明是对的？能失败吗？
 
-`analysis/tests/` 九个测试。关键的那个是 [test_alerts.py#test-top-cause](../../analysis/tests/test_alerts.py)：
+`analysis/tests/` 九个测试。关键的那个是 [test_alerts.py#test-top-cause](../../analysis/tests/test_alerts.py#test-top-cause)：
 先**不经过 SQL**，直接从 incidents.csv 算出真正影响最大的原因；再断言 SQL 的排名第一和它一致。
 
 能失败的对照：`TAILHUNT_ANALYSIS_RANK=count` 把排名换成按次数，这个测试必须红。

@@ -23,6 +23,7 @@ type Server struct {
 	Secret                            []byte
 	Window                            *Window
 	Traffic                           *Traffic
+	Learn                             *Learn
 }
 
 // Handler mounts the public API.
@@ -34,6 +35,7 @@ func (s *Server) Handler() *http.ServeMux {
 	mux.HandleFunc("GET /api/search", s.authed("", s.search))
 	mux.HandleFunc("POST /api/holds", s.authed("", s.hold))
 	s.mountAdmin(mux)
+	s.mountLearn(mux)
 	return mux
 }
 

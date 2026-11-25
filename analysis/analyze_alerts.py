@@ -33,11 +33,13 @@ def connect(data: Path = DATA) -> duckdb.DuckDBPyConnection:
     return con
 
 
+# @learn:rank-column
 def rank_column() -> str:
     """Which column decides the cause ranking. TAILHUNT_ANALYSIS_RANK=count
     is the sabotage switch: it ranks by incident count, the naive choice,
     and the test that pins the planted top cause must then fail."""
     return "count_rank" if os.environ.get("TAILHUNT_ANALYSIS_RANK") == "count" else "impact_rank"
+# @learn:end rank-column
 
 
 # @learn:rule-advice

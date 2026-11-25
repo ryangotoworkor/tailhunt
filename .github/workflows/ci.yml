@@ -1,0 +1,69 @@
+name: ci
+on: [push, pull_request]
+
+jobs:
+  go:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env: {POSTGRES_USER: tailhunt, POSTGRES_PASSWORD: tailhunt, POSTGRES_DB: tailhunt}
+        ports: ["54389:5432"]
+        options: --health-cmd "pg_isready -U tailhunt" --health-interval 2s --health-retries 30
+    env:
+      TAILHUNT_REQUIRE_PG: "1" # never skip the database tests in CI
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: {go-version: "1.27.4"}
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - run: go vet ./...
+      - run: test -z "$(gofmt -l .)"
+      - name: unit + load-shaped incident/fix tests
+        run: go test -count=1 ./...
+      - name: python venv for the analysis control
+        run: python -m venv .venv && .venv/bin/pip install -q -r analysis/requirements.txt
+      - name: failing controls (each sabotaged protection must turn its test red)
+        run: ./scripts/failing-controls.sh
+
+  analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - run: pip install -r analysis/requirements.txt
+      - name: the committed synthetic data is exactly what the seed generates
+        run: python analysis/gen_alerts.py && git diff --exit-code analysis/data
+      - run: python -m pytest -q analysis
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: actions/setup-node@v4
+        with: {node-version: "24"}
+      - run: node scripts/check_anchors.mjs
+      - run: node scripts/build_problem_videos.mjs > /dev/null
+      - run: cd frontend && npm ci && npm run build
+      - run: docker compose -p tailhunt config -q
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: [go, web]
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: actions/setup-node@v4
+        with: {node-version: "24"}
+      - run: npm ci && npx playwright install --with-deps chromium
+      - run: cd frontend && npm ci
+      - name: whole stack from an empty volume
+        run: ./scripts/demo.sh
+        env: {DC: docker compose}
+      - run: npx playwright test -c e2e/playwright.config.ts
+      - if: always()
+        run: ./scripts/stop.sh
+        env: {DC: docker compose}

@@ -19,7 +19,7 @@
 拿连接如果要排队，这段时间被**藏在 QueryContext 里**，trace 上只看到一个很长的查询 span。
 你会误以为是 SQL 慢，去优化 SQL，白忙一场。
 
-所以 [pool.go#pool-acquire](../../internal/inventory/pool.go) 显式调用 `db.Conn(ctx)` 拿连接，并且：
+所以 [pool.go#pool-acquire](../../internal/inventory/pool.go#pool-acquire) 显式调用 `db.Conn(ctx)` 拿连接，并且：
 
 - 包一个 span `db.pool.acquire`，属性里带 `db.pool.wait_ms`、`in_use_at_start`、`max_open`；
 - 记一个直方图 `tailhunt_db_acquire_seconds{path=availability|hold}`；
@@ -38,7 +38,7 @@
 
 `InUse == MaxOpen` 并且 `WaitCount` 在涨，就是连接池耗尽的直接证据。
 我们用 client_golang 的 `collectors.NewDBStatsCollector` 把它导出成 `go_sql_*` 指标，
-另外 inventory 的 `/debug/dbstats` 直接返回 JSON（[pool.go#dbstats](../../internal/inventory/pool.go)）。
+另外 inventory 的 `/debug/dbstats` 直接返回 JSON（[pool.go#dbstats](../../internal/inventory/pool.go#dbstats)）。
 
 ## 真跑出来是什么样？
 
@@ -72,7 +72,7 @@ $ curl -s localhost:8882/debug/dbstats
 
 ## 诊断查询为什么要单独一个池子？
 
-[pool.go#pg-activity](../../internal/inventory/pool.go) 查 `pg_stat_activity`，看每条连接在 Postgres 那边是什么状态。
+[pool.go#pg-activity](../../internal/inventory/pool.go#pg-activity) 查 `pg_stat_activity`，看每条连接在 Postgres 那边是什么状态。
 它跑在一个**只有一条连接的独立池子**上（application_name 是 `tailhunt-diag`）。
 如果它和业务共用池子，池子满的时候它自己也要排队，你最需要它的时候它最慢。
 
@@ -82,7 +82,7 @@ pg_stat_activity 里能看到一条 `idle in transaction` 的会话，查询是 
 
 ## 告警规则
 
-[rules.yml#alert-rules](../../deploy/prometheus/rules.yml) 里两条：
+[rules.yml#alert-rules](../../deploy/prometheus/rules.yml#alert-rules) 里两条：
 
 - `SearchP99High`：网关的搜索 p99 超过三百毫秒，持续六秒；
 - `InventoryDBPoolSaturated`：二十秒内 InUse 顶到上限，同时每秒有超过一次等待。

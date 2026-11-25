@@ -10,7 +10,7 @@
 
 需要三样东西：
 
-1. 故障注入：让 quote 慢下来（[fault.go#quote-fault](../../internal/quote/fault.go)）；
+1. 故障注入：让 quote 慢下来（[fault.go#quote-fault](../../internal/quote/fault.go#quote-fault)）；
 2. 压力：一边有客人搜索，一边有客人锁房；
 3. 一个能说「复现成功」的测试。
 
@@ -19,7 +19,7 @@
 假设你用最常见的写法：十个 goroutine，每个「发一个、等返回、再发一个」。这叫闭环（closed loop）。
 系统一慢，发送也跟着慢，到达率自动下降，尾延迟被**藏掉了**。这个坑有个名字，叫 coordinated omission。
 
-[loadgen.go#open-model](../../internal/loadgen/loadgen.go) 按固定时刻表发：第 i 个请求在 `i / rps` 秒发出，不管前面的回没回来。
+[loadgen.go#open-model](../../internal/loadgen/loadgen.go#open-model) 按固定时刻表发：第 i 个请求在 `i / rps` 秒发出，不管前面的回没回来。
 测试 `TestRunKeepsTheScheduleWhenRequestsAreSlow` 证明这一点：每个请求两百毫秒，每十毫秒发一个，同时在飞的请求超过十个；闭环的话只会有一个。
 
 ## 先算一笔账：池子什么时候会满？
@@ -80,7 +80,7 @@ Postgres 那一侧（`pg_stat_activity`）：连接都在 `idle in transaction`�
 
 ## 把复现钉成测试
 
-[incident_test.go#test-reproduce](../../internal/inventory/incident_test.go) 在进程里搭同样的局面：真 Postgres、六条连接、quote 桩慢三百毫秒、锁房每秒二十五、房态查询每秒四十。
+[incident_test.go#test-reproduce](../../internal/inventory/incident_test.go#test-reproduce) 在进程里搭同样的局面：真 Postgres、六条连接、quote 桩慢三百毫秒、锁房每秒二十五、房态查询每秒四十。
 断言：房态查询 p99 **至少** 三百毫秒，并且池子确实让人等过。
 
 ```

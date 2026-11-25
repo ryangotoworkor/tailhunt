@@ -10,18 +10,23 @@ func TestWindowKeepsPerSecondP99AndTheSlowestTrace(t *testing.T) {
 	for i := 1; i <= 100; i++ {
 		w.Observe(searchRoute, 200, time.Duration(i)*time.Millisecond, "t"+string(rune('a'+i%26)))
 	}
-	w.Observe(searchRoute, 503, 900*time.Millisecond, "slowest")
-	w.Observe("POST /api/holds", 200, 5*time.Second, "ignored") // only searches count
+	w.Observe(searchRoute, 200, 800*time.Millisecond, "slowest")
+	w.Observe(searchRoute, 503, 900*time.Millisecond, "timed-out") // slower, but failed: not a trace to open
+	w.Observe("POST /api/holds", 200, 5*time.Second, "ignored")    // only searches count
 	pts := w.Series(3)
-	last := pts[len(pts)-1]
-	if len(pts) != 3 || last.N != 101 || last.Errors != 1 || last.P99 != 100 || last.P50 != 51 {
+	n, errs := 0, 0
+	for _, p := range pts {
+		n, errs = n+p.N, errs+p.Errors
+	}
+	// bucketed by start time: the 900 ms request started in an earlier second
+	if len(pts) != 3 || n != 102 || errs != 1 {
 		t.Fatalf("series %+v", pts)
 	}
-	if s := w.Slowest(time.Now().Add(-time.Minute)); s.TraceID != "slowest" || s.Status != 503 {
+	if s := w.Slowest(time.Now().Add(-time.Minute)); s.TraceID != "slowest" || s.Status != 200 {
 		t.Fatalf("slowest %+v", s)
 	}
 	r := w.Range(time.Now().Add(-time.Minute), time.Now())
-	if r.Requests != 101 || r.MaxMs != 900 {
+	if r.Requests != 102 || r.MaxMs != 900 || r.P50Ms != 51 || r.P99Ms != 800 {
 		t.Fatalf("range %+v", r)
 	}
 }

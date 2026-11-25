@@ -1,0 +1,627 @@
+[
+  {
+    "id": "q01-pool-exhaustion",
+    "title": "锁房事务攥着连接去调报价",
+    "subtitle": "搜索九十九分位飙到秒级，连接池六条全满",
+    "lang": "go",
+    "source": "internal/inventory/hold.go#L118-L170",
+    "code": "func (s *Server) holdQuoteFirst(ctx context.Context, req HoldRequest, cfg Config) (Hold, error) {\n\tprice, err := s.price(ctx, req, cfg) // no connection held during the network call\n\tif err != nil {\n\t\treturn Hold{}, err\n\t}\n\trelease, err := s.holdSlot(ctx, cfg)\n\tif err != nil {\n\t\treturn Hold{}, err\n\t}\n\tdefer release()\n\tactx := ctx\n\tif cfg.AcquireTimeout {\n\t\tvar cancel context.CancelFunc\n\t\tactx, cancel = context.WithTimeout(ctx, holdAcquireTimeout)\n\t\tdefer cancel()\n\t}\n\tconn, err := s.acquire(actx, \"hold\")\n\tif err != nil {\n\t\treturn Hold{}, ErrBusy\n\t}\n\tdefer conn.Close()\n\tctx, cancel := context.WithTimeout(ctx, queryTimeout)\n\tdefer cancel()\n\tctx, span := obs.Tracer().Start(ctx, \"db.tx hold\")\n\tdefer span.End()\n\ttx, err := conn.BeginTx(ctx, nil)\n\tif err != nil {\n\t\treturn Hold{}, err\n\t}\n\tdefer tx.Rollback()\n\tvar left int\n\terr = tx.QueryRowContext(ctx, `UPDATE room_nights SET rooms_left = rooms_left - 1\n\t\tWHERE hotel_id = $1 AND night = $2 AND rooms_left > 0 RETURNING rooms_left`, req.HotelID, req.Night).Scan(&left)\n\tif errors.Is(err, sql.ErrNoRows) {\n\t\tvar exists bool\n\t\t_ = tx.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM room_nights WHERE hotel_id = $1 AND night = $2)`, req.HotelID, req.Night).Scan(&exists)\n\t\tif exists {\n\t\t\treturn Hold{}, ErrSoldOut\n\t\t}\n\t\treturn Hold{}, ErrNoSuchNight\n\t} else if err != nil {\n\t\treturn Hold{}, err\n\t}\n\th := Hold{HotelID: req.HotelID, Night: req.Night, PriceCents: price}\n\terr = tx.QueryRowContext(ctx, `INSERT INTO holds (hotel_id, night, guest, price_cents, expires_at)\n\t\tVALUES ($1, $2, $3, $4, now() + $5::interval) RETURNING id, expires_at`,\n\t\treq.HotelID, req.Night, req.Guest, price, s.holdTTL()).Scan(&h.ID, &h.ExpiresAt)\n\tif err != nil {\n\t\treturn Hold{}, err\n\t}\n\treturn h, tx.Commit()\n}",
+    "segments": [
+      {
+        "lines": [
+          2
+        ],
+        "text": "修复后，第一件事就是报价。这时候还没碰数据库，网络再慢也不占连接。"
+      },
+      {
+        "lines": [
+          17,
+          18,
+          19,
+          20,
+          21,
+          26
+        ],
+        "text": "报价回来，才去拿连接，开事务。"
+      },
+      {
+        "lines": [
+          32,
+          33
+        ],
+        "text": "检查和扣减合成一条带条件的更新，房间不够就更新零行。行锁只活几微秒。"
+      },
+      {
+        "lines": [
+          45,
+          51
+        ],
+        "text": "插一条记录，提交，连接马上还回去。"
+      },
+      {
+        "lines": [],
+        "text": "怎么证明？只开这一层的测试里，房态查询的九十九分位是三点八毫秒。把这一层强行关掉，同一个测试变红，九十九分位三秒多。"
+      },
+      {
+        "lines": [],
+        "text": "面试一句话：trace 看到等连接，计数器证实池子满，数据库会话指向事务里的网络调用，把调用挪出事务就好了。"
+      }
+    ],
+    "example_code": "func (s *Server) holdQuoteInsideTx(ctx context.Context, req HoldRequest) (Hold, error) {\n\tconn, err := s.acquire(ctx, \"hold\")\n\tif err != nil {\n\t\treturn Hold{}, err\n\t}\n\tdefer conn.Close()\n\tctx, span := obs.Tracer().Start(ctx, \"db.tx hold\")\n\tdefer span.End()\n\ttx, err := conn.BeginTx(ctx, nil)\n\tif err != nil {\n\t\treturn Hold{}, err\n\t}\n\tdefer tx.Rollback()\n\tvar left int\n\terr = tx.QueryRowContext(ctx, `SELECT rooms_left FROM room_nights WHERE hotel_id = $1 AND night = $2 FOR UPDATE`, req.HotelID, req.Night).Scan(&left)\n\tif errors.Is(err, sql.ErrNoRows) {\n\t\treturn Hold{}, ErrNoSuchNight\n\t} else if err != nil {\n\t\treturn Hold{}, err\n\t}\n\tif left == 0 {\n\t\treturn Hold{}, ErrSoldOut\n\t}\n\tprice, err := s.Quote.Price(ctx, req.HotelID, req.Night, req.Tier) // network call, connection still held\n\tif err != nil {\n\t\treturn Hold{}, err\n\t}\n\tif _, err := tx.ExecContext(ctx, `UPDATE room_nights SET rooms_left = rooms_left - 1 WHERE hotel_id = $1 AND night = $2`, req.HotelID, req.Night); err != nil {\n\t\treturn Hold{}, err\n\t}\n\th := Hold{HotelID: req.HotelID, Night: req.Night, PriceCents: price}\n\terr = tx.QueryRowContext(ctx, `INSERT INTO holds (hotel_id, night, guest, price_cents, expires_at)\n\t\tVALUES ($1, $2, $3, $4, now() + $5::interval) RETURNING id, expires_at`,\n\t\treq.HotelID, req.Night, req.Guest, price, s.holdTTL()).Scan(&h.ID, &h.ExpiresAt)\n\tif err != nil {\n\t\treturn Hold{}, err\n\t}\n\treturn h, tx.Commit()\n}",
+    "example_segments": [
+      {
+        "lines": [],
+        "text": "先说现象。搜索的九十九分位从几毫秒涨到六秒多，连中位数都过了一秒。"
+      },
+      {
+        "lines": [],
+        "text": "trace 里时间全在拿连接，连接池六条全满，每秒有几十个请求在排队。"
+      },
+      {
+        "lines": [],
+        "text": "数据库那一侧，每条连接都是 idle in transaction，最后一条语句是锁房的 for update。所以去读锁房的代码。"
+      },
+      {
+        "lines": [
+          9,
+          15
+        ],
+        "text": "这是修复前的版本。先开事务，再用 for update 锁住这一晚的这一行。"
+      },
+      {
+        "lines": [
+          24
+        ],
+        "text": "问题在这一行。锁着行、开着事务，去调报价服务。报价慢三百毫秒，这条连接就被攥三百毫秒。"
+      },
+      {
+        "lines": [
+          28,
+          32,
+          33,
+          34,
+          38
+        ],
+        "text": "报价回来以后才扣库存、插记录、提交。连接从头到尾都没有还回去。"
+      }
+    ],
+    "example_source": "internal/inventory/hold.go#L179-L218"
+  },
+  {
+    "id": "q02-bulkhead-scope",
+    "title": "舱壁包得太宽，锁房大面积失败",
+    "subtitle": "搜索好了，锁房却错了七成二",
+    "lang": "go",
+    "source": "internal/inventory/hold.go#L67-L93",
+    "code": "func (s *Server) placeHold(ctx context.Context, req HoldRequest) (Hold, error) {\n\tcfg := s.Config()\n\tif cfg.QuoteOutsideTx {\n\t\treturn s.holdQuoteFirst(ctx, req, cfg)\n\t}\n\trelease, err := s.holdSlot(ctx, cfg)\n\tif err != nil {\n\t\treturn Hold{}, err\n\t}\n\tdefer release()\n\treturn s.holdQuoteInsideTx(ctx, req)\n}\n\n// holdSlot takes one of the 2 hold slots when Bulkhead is on: a hold\n// holds a connection only while it has a slot, so holds can never take\n// more than 2 of the 6 connections.\nfunc (s *Server) holdSlot(ctx context.Context, cfg Config) (func(), error) {\n\tif !cfg.Bulkhead {\n\t\treturn func() {}, nil\n\t}\n\trelease, err := s.holdSlots.Acquire(ctx, holdAcquireTimeout)\n\tif err != nil {\n\t\treturn nil, ErrBusy\n\t}\n\treturn release, nil\n}",
+    "segments": [
+      {
+        "lines": [
+          3,
+          4
+        ],
+        "text": "修复后，报价在事务外面的路径，自己决定什么时候拿槽位，也就是报价回来以后。"
+      },
+      {
+        "lines": [
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ],
+        "text": "只有旧路径还要包住整段，因为它在事务里调报价，整段都拿着连接。"
+      },
+      {
+        "lines": [
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25
+        ],
+        "text": "取槽位单独成了一个函数。舱壁保护的是连接，所以它只包拿着连接的那一段。"
+      },
+      {
+        "lines": [],
+        "text": "怎么证明？同一个测试断言锁房错误率不超过百分之五。修复后锁房零错误，九十九分位三百一十毫秒，就是报价本身的耗时。"
+      },
+      {
+        "lines": [],
+        "text": "面试一句话：舱壁限制的是资源，就要只包住持有资源的那一段，否则把网络延迟也算进了并发额度。"
+      }
+    ],
+    "example_code": "func (s *Server) placeHold(ctx context.Context, req HoldRequest) (Hold, error) {\n\tcfg := s.Config()\n\tif cfg.Bulkhead {\n\t\trelease, err := s.holdSlots.Acquire(ctx, holdAcquireTimeout)\n\t\tif err != nil {\n\t\t\treturn Hold{}, ErrBusy\n\t\t}\n\t\tdefer release()\n\t}\n\tif cfg.QuoteOutsideTx {\n\t\treturn s.holdQuoteFirst(ctx, req, cfg) // calls quote while holding the slot\n\t}\n\treturn s.holdQuoteInsideTx(ctx, req)\n}",
+    "example_segments": [
+      {
+        "lines": [],
+        "text": "现象是这样的。加上舱壁以后，搜索的九十九分位只有四毫秒，可锁房的错误率是百分之七十二。"
+      },
+      {
+        "lines": [],
+        "text": "锁房的九十九分位正好是六百毫秒左右，也就是等舱壁的三百毫秒，加上报价的三百毫秒。"
+      },
+      {
+        "lines": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "text": "看修复前。舱壁的槽位在函数一开始就拿了。"
+      },
+      {
+        "lines": [
+          11
+        ],
+        "text": "然后才走修复后的路径，而这条路径第一件事是调报价。槽位在整个网络调用期间都被占着。两个槽位，每秒只能放七个锁房。"
+      }
+    ],
+    "example_source": "docs/problems/snippets/bulkhead_too_wide.go#L11-L25"
+  },
+  {
+    "id": "q03-bash32-empty-array",
+    "title": "失败对照脚本的对照组没跑",
+    "subtitle": "macOS 自带的 bash，空数组在 set u 下报错",
+    "lang": "bash",
+    "source": "scripts/failing-controls.sh#L14-L47",
+    "code": "pairs=(\n  \"timeout:TestFix_AcquireTimeoutFailsFastInsteadOfQueueing\"\n  \"bulkhead:TestFix_BulkheadReservesConnectionsForAvailability\"\n  \"txscope:TestFix_QuoteOutsideTxReleasesTheConnection\"\n  \"quoteguard:TestFix_QuoteGuardBoundsHoldLatencyAndOpensTheBreaker\"\n  \"all:TestFix_AllLayersKeepAvailabilityFast\"\n)\nfor p in \"${pairs[@]}\"; do\n  sab=${p%%:*}; test=${p#*:}\n  for mode in sabotaged clean; do\n    # An empty TAILHUNT_SABOTAGE means \"nothing off\". (Not an empty bash\n    # array: macOS bash 3.2 treats \"${arr[@]}\" of an empty array as unbound\n    # under set -u, and every clean run silently did not run at all.)\n    val=\"\"; [ \"$mode\" = sabotaged ] && val=$sab\n    res=$(TAILHUNT_SABOTAGE=\"$val\" TAILHUNT_REQUIRE_PG=1 go test -count=1 -run \"^${test}\\$\" -v ./internal/inventory 2>&1)\n    verdict=$(grep -oE -- \"^--- (PASS|FAIL)\" <<<\"$res\" | head -1 | cut -c5-)\n    detail=$(grep -E \"incident_test.go:[0-9]+: \" <<<\"$res\" | sed -E 's/^ +//' | tail -1)\n    want=PASS; [ \"$mode\" = sabotaged ] && want=FAIL\n    mark=ok; [ \"$verdict\" = \"$want\" ] || { mark=\"UNEXPECTED\"; bad=1; }\n    log \"$(printf '%-10s %-9s %-55s %-4s (%s)' \"$sab\" \"$mode\" \"$test\" \"${verdict:-none}\" \"$mark\")\"\n    log \"           $detail\"\n  done\ndone\n# The alert analysis has its own control: rank causes by incident count\n# (the naive choice) and the test that pins the planted top cause must fail.\nfor mode in sabotaged clean; do\n  val=\"\"; [ \"$mode\" = sabotaged ] && val=count\n  res=$(TAILHUNT_ANALYSIS_RANK=\"$val\" .venv/bin/python -m pytest -q analysis -k planted_top_cause 2>&1)\n  verdict=FAIL; grep -qE \"^1 passed\" <<<\"$(tail -1 <<<\"$res\")\" && verdict=PASS\n  want=PASS; [ \"$mode\" = sabotaged ] && want=FAIL\n  mark=ok; [ \"$verdict\" = \"$want\" ] || { mark=\"UNEXPECTED\"; bad=1; }\n  log \"$(printf '%-10s %-9s %-55s %-4s (%s)' \"rank=count\" \"$mode\" \"test_planted_top_cause_ranks_first_by_impact\" \"$verdict\" \"$mark\")\"\n  log \"           $(grep -E \"^E +AssertionError\" <<<\"$res\" | head -1 | sed -E 's/^E +//')\"\ndone",
+    "segments": [
+      {
+        "lines": [
+          14
+        ],
+        "text": "修复后不用数组了。干净的时候，变量设成空字符串，代码里把空当作什么都不关。"
+      },
+      {
+        "lines": [
+          15
+        ],
+        "text": "然后始终带着这个变量去跑测试。两种情况走的是同一条命令。"
+      },
+      {
+        "lines": [
+          18,
+          19
+        ],
+        "text": "判据写的是必须看到期望的结果。干净的一组必须看到通过，没看到就算意外。"
+      },
+      {
+        "lines": [],
+        "text": "怎么证明？重跑以后十组全部符合预期，最后一行写着所有破坏都失败，所有干净都通过。"
+      },
+      {
+        "lines": [],
+        "text": "面试一句话：判据要正向，要求看到通过，而不是没看到失败，所以这个坑红了，而不是悄悄变绿。"
+      }
+    ],
+    "example_code": "for mode in sabotaged clean; do\n  env=(); [ \"$mode\" = sabotaged ] && env=(TAILHUNT_SABOTAGE=\"$sab\")\n  res=$(env \"${env[@]}\" TAILHUNT_REQUIRE_PG=1 go test -count=1 -run \"^${test}\\$\" -v ./internal/inventory 2>&1)\n  verdict=$(grep -oE -- \"^--- (PASS|FAIL)\" <<<\"$res\" | head -1 | cut -c5-)\n  want=PASS; [ \"$mode\" = sabotaged ] && want=FAIL\n  [ \"$verdict\" = \"$want\" ] || bad=1\ndone",
+    "example_segments": [
+      {
+        "lines": [],
+        "text": "现象：破坏的那五次都失败了，看起来很对。可是干净的那五次，结论是空的，标着意外。"
+      },
+      {
+        "lines": [],
+        "text": "结论为空，说明测试根本没有输出，也就是根本没跑。报错是 env 数组未定义。"
+      },
+      {
+        "lines": [
+          2
+        ],
+        "text": "修复前，干净的时候数组是空的，破坏的时候才往里放一个环境变量。"
+      },
+      {
+        "lines": [
+          3
+        ],
+        "text": "这一行展开空数组。macOS 自带的 bash 三点二，在 set u 下把它当成未定义变量，命令直接退出。"
+      }
+    ],
+    "example_source": "docs/problems/snippets/failing_controls_bash32.sh#L7-L13"
+  },
+  {
+    "id": "q04-rank-prefix-quirk",
+    "title": "等价性测试抓到旧排序的怪癖",
+    "subtitle": "名字互为前缀时，旧代码把短的排到后面",
+    "lang": "go",
+    "source": "internal/search/rank.go#L44-L78",
+    "code": "func rankFixed(rs []Result, _ string) {\n\tsort.SliceStable(rs, func(i, j int) bool { return lessResult(&rs[i], &rs[j]) })\n}\n\nfunc lessResult(a, b *Result) bool {\n\tif a.PriceCents != b.PriceCents {\n\t\treturn a.PriceCents < b.PriceCents\n\t}\n\tif a.Stars != b.Stars {\n\t\treturn a.Stars > b.Stars\n\t}\n\treturn lessFold(a.Name, b.Name)\n}\n\n// lessFold is strings.ToLower(a) < strings.ToLower(b) for ASCII names,\n// with no allocation. Non-ASCII names fall back to the allocating form.\nfunc lessFold(a, b string) bool {\n\tfor i := 0; i < len(a) && i < len(b); i++ {\n\t\tx, y := a[i], b[i]\n\t\tif x >= 0x80 || y >= 0x80 {\n\t\t\treturn strings.ToLower(a) < strings.ToLower(b)\n\t\t}\n\t\tif 'A' <= x && x <= 'Z' {\n\t\t\tx += 'a' - 'A'\n\t\t}\n\t\tif 'A' <= y && y <= 'Z' {\n\t\t\ty += 'a' - 'A'\n\t\t}\n\t\tif x != y {\n\t\t\treturn x < y\n\t\t}\n\t}\n\treturn len(a) < len(b)\n}",
+    "segments": [
+      {
+        "lines": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13
+        ],
+        "text": "修复后直接比字段：先比价格，再比星级，最后比名字。一个字符串都不生成。"
+      },
+      {
+        "lines": [
+          17,
+          18,
+          19,
+          20,
+          21,
+          22
+        ],
+        "text": "名字逐个字节比，遇到非英文字符才退回到会分配内存的写法。"
+      },
+      {
+        "lines": [
+          33
+        ],
+        "text": "前缀相同的时候，短的在前。这是注释一直承诺的行为，旧代码没做到。"
+      },
+      {
+        "lines": [],
+        "text": "怎么证明？等价性测试在不互为前缀的数据上比五百轮，另一个测试把新旧两种行为都钉住。分配次数从两千九百多降到三次。"
+      },
+      {
+        "lines": [],
+        "text": "面试一句话：性能优化先写等价性测试，它抓到了旧代码的怪癖，我把行为变更写进测试，而不是悄悄改掉。"
+      }
+    ],
+    "example_code": "func rankKey(r Result, tier string) string {\n\treturn fmt.Sprintf(\"%010d|%d|%s|%s\", r.PriceCents, 9-r.Stars, strings.ToLower(r.Name), tier)\n}\n\nfunc rankLegacy(rs []Result, tier string) {\n\tsort.Slice(rs, func(i, j int) bool { return rankKey(rs[i], tier) < rankKey(rs[j], tier) })\n}",
+    "example_segments": [
+      {
+        "lines": [],
+        "text": "背景：内存分析显示，排序比较函数占了搜索服务三分之一的内存分配。改之前，先写了一个等价性测试。"
+      },
+      {
+        "lines": [],
+        "text": "现象：测试第一次就红了。价格和星级都一样，旧代码把名字短的那家排到了后面。"
+      },
+      {
+        "lines": [
+          2
+        ],
+        "text": "旧代码每次比较，都格式化一个字符串当排序键。名字后面紧跟着一个竖线分隔符。"
+      },
+      {
+        "lines": [
+          6
+        ],
+        "text": "比较函数里两边各做一次。五十个酒店要比几百次，就是上千个临时字符串。竖线的字节值比数字大，所以短名字排到了长名字后面。"
+      }
+    ],
+    "example_source": "internal/search/rank.go#L30-L37"
+  },
+  {
+    "id": "q05-jaeger-oom",
+    "title": "演练到一半，Jaeger 被 OOM 杀掉",
+    "subtitle": "内存存储的 trace 上限超过了容器内存",
+    "lang": "yaml",
+    "source": "docker-compose.yml#L87-L98",
+    "code": "jaeger:\n  image: jaegertracing/all-in-one:1.76.0\n  restart: unless-stopped\n  # In-memory storage. 8000 traces got it OOM-killed at 160m during a\n  # 90 s incident (55 req/s, ~8 spans each); 3000 plus a soft Go memory\n  # limit keeps it well under the cap.\n  mem_limit: 200m\n  environment:\n    COLLECTOR_OTLP_ENABLED: \"true\"\n    MEMORY_MAX_TRACES: \"3000\"\n    GOMEMLIMIT: 150MiB\n  ports: [\"16698:16686\", \"4337:4317\", \"4338:4318\"]",
+    "segments": [
+      {
+        "lines": [
+          3
+        ],
+        "text": "修复后，加上重启策略。"
+      },
+      {
+        "lines": [
+          7
+        ],
+        "text": "容器上限放到两百兆。"
+      },
+      {
+        "lines": [
+          10,
+          11
+        ],
+        "text": "trace 上限降到三千，再给 Go 运行时一个软内存上限，让它提前回收。"
+      },
+      {
+        "lines": [],
+        "text": "怎么证明？同样一分半钟的事故，每二十秒看一次内存，最后稳定在一百二十兆左右，没有再被杀。"
+      },
+      {
+        "lines": [],
+        "text": "面试一句话：观测组件也要按事故时的流量做容量规划，因为事故时的流量才是它真正要扛的。"
+      }
+    ],
+    "example_code": "jaeger:\n  image: jaegertracing/all-in-one:1.76.0\n  mem_limit: 160m\n  environment:\n    COLLECTOR_OTLP_ENABLED: \"true\"\n    MEMORY_MAX_TRACES: \"8000\"\n  ports: [\"16698:16686\", \"4337:4317\", \"4338:4318\"]",
+    "example_segments": [
+      {
+        "lines": [],
+        "text": "现象：截图的时候连不上 Jaeger。容器状态是退出，退出码一三七，标记着被内存杀掉，重启次数是零。"
+      },
+      {
+        "lines": [
+          3
+        ],
+        "text": "修复前，容器内存上限一百六十兆。"
+      },
+      {
+        "lines": [
+          6
+        ],
+        "text": "而内存里最多保留八千条 trace。事故期间每秒五十多个请求，每条八个左右的 span，一分半钟就五千条。"
+      },
+      {
+        "lines": [
+          1,
+          2
+        ],
+        "text": "而且没有写重启策略，挂了就一直挂着。观测系统在最需要它的时候先倒了。"
+      }
+    ],
+    "example_source": "docs/problems/snippets/jaeger_before.yml#L6-L12"
+  },
+  {
+    "id": "q06-awk-label-space",
+    "title": "性能脚本说每个请求分配七十一兆",
+    "subtitle": "指标标签里的空格让 awk 取错了列",
+    "lang": "bash",
+    "source": "scripts/profile.sh#L17-L18",
+    "code": "# $NF, not $2: the route label (\"GET /search\") contains a space.\ncount() { curl -sf \"$SEARCH/metrics\" | awk '/^tailhunt_http_server_duration_seconds_count\\{.*route=\"GET \\/search\".*svc=\"search\"/ {s+=$NF} END {printf \"%d\", s}'; }",
+    "segments": [
+      {
+        "lines": [
+          1
+        ],
+        "text": "修复后，注释写清楚为什么。"
+      },
+      {
+        "lines": [
+          2
+        ],
+        "text": "取最后一列，也就是指标的值，不管前面的标签里有几个空格。"
+      },
+      {
+        "lines": [],
+        "text": "怎么证明？重跑以后每十秒六百零二个请求，正好等于每秒六十乘十秒。每请求分配，旧版十三万字节，新版八万多。"
+      },
+      {
+        "lines": [],
+        "text": "面试一句话：数字离谱的时候先查分母，并且给每个指标脚本加一个数量对不对得上的检查。"
+      }
+    ],
+    "example_code": "count() { curl -sf \"$SEARCH/metrics\" | awk '/^tailhunt_http_server_duration_seconds_count\\{.*route=\"GET \\/search\".*svc=\"search\"/ {s+=$2} END {printf \"%d\", s}'; }",
+    "example_segments": [
+      {
+        "lines": [],
+        "text": "现象：内存分析脚本的结果里，每十秒的请求数是零，每个请求分配七十一兆。这个数一看就不对。"
+      },
+      {
+        "lines": [],
+        "text": "请求数是零，所以每请求就等于总量。问题在分母，不在分析本身。"
+      },
+      {
+        "lines": [],
+        "text": "直接看那一行指标：路由标签的值是 GET 加一个空格再加路径。awk 默认按空格切列。"
+      },
+      {
+        "lines": [
+          1
+        ],
+        "text": "修复前取的是第二列。因为那个空格，第二列是半截标签，不是数字，加起来永远是零。"
+      }
+    ],
+    "example_source": "docs/problems/snippets/profile_count_before.sh#L7-L7"
+  },
+  {
+    "id": "q07-window-by-finish",
+    "title": "修好了，页面却说九十九分位还是九秒",
+    "subtitle": "延迟窗口按结束时间分桶，口径错了",
+    "lang": "go",
+    "source": "internal/gateway/window.go#L49-L76",
+    "code": "func (w *Window) Observe(route string, status int, d time.Duration, traceID string) {\n\tif route != searchRoute {\n\t\treturn\n\t}\n\tstart := time.Now().Add(-d)\n\tms := float64(d.Microseconds()) / 1000\n\tw.mu.Lock()\n\tdefer w.mu.Unlock()\n\tb := &w.buckets[start.Unix()%int64(len(w.buckets))]\n\tif b.sec != start.Unix() {\n\t\tif b.sec > start.Unix() {\n\t\t\treturn // older than the ring\n\t\t}\n\t\t*b = bucket{sec: start.Unix()}\n\t}\n\tif len(b.lat) < 4000 {\n\t\tb.lat = append(b.lat, ms)\n\t}\n\tif status >= 500 || status == 0 {\n\t\tb.errs++\n\t}\n\t// slowest request that still completed: a timed-out one never ran its\n\t// query, so its trace cannot show where the time would have gone\n\tif ms > b.slow.Ms && traceID != \"\" && status < 400 {\n\t\tb.slow = Slow{TraceID: traceID, Ms: ms, At: start, Status: status}\n\t}\n}",
+    "segments": [
+      {
+        "lines": [
+          5
+        ],
+        "text": "修复后，用现在减去耗时，算出请求开始的时刻。"
+      },
+      {
+        "lines": [
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "text": "按开始的那一秒分桶。太老的请求超出环形缓冲，直接丢掉。"
+      },
+      {
+        "lines": [
+          24,
+          25
+        ],
+        "text": "最慢的那条也记开始时间，后面找 trace 用。"
+      },
+      {
+        "lines": [],
+        "text": "另外，对比只统计修复八秒以后才开始的请求，先让积压排空。"
+      },
+      {
+        "lines": [],
+        "text": "怎么证明？再跑一次，修复前七点六二秒，修复后十点一毫秒，这十秒里连接池一次等待都没有。"
+      },
+      {
+        "lines": [],
+        "text": "面试一句话：两个信号矛盾的时候先怀疑统计口径，前后对比要按开始时间，还要等积压排空。"
+      }
+    ],
+    "example_code": "func (w *Window) Observe(route string, status int, d time.Duration, traceID string) {\n\tif route != searchRoute {\n\t\treturn\n\t}\n\tnow := time.Now()\n\tms := float64(d.Microseconds()) / 1000\n\tw.mu.Lock()\n\tdefer w.mu.Unlock()\n\tb := &w.buckets[now.Unix()%int64(len(w.buckets))]\n\tif b.sec != now.Unix() {\n\t\t*b = bucket{sec: now.Unix()}\n\t}\n\tb.lat = append(b.lat, ms)\n}",
+    "example_segments": [
+      {
+        "lines": [],
+        "text": "现象：修复以后，连接池的等待已经是零，中位数也正常，可九十九分位还是九秒。两个信号互相矛盾。"
+      },
+      {
+        "lines": [],
+        "text": "假设：修复后的窗口里，混进了修复前就开始排队的请求。它们在旧代码里等了九秒，修复以后才结束。"
+      },
+      {
+        "lines": [
+          5
+        ],
+        "text": "看修复前，分桶用的是现在，也就是请求结束的时刻。"
+      },
+      {
+        "lines": [
+          9,
+          10,
+          11
+        ],
+        "text": "所以一个修复前开始、修复后结束的请求，被算进了修复后的那一秒。"
+      }
+    ],
+    "example_source": "docs/problems/snippets/window_by_finish.go#L10-L24"
+  },
+  {
+    "id": "q08-trace-root-late",
+    "title": "trace 瀑布图偶尔少了第一跳",
+    "subtitle": "根 span 最后结束，也最后到 Jaeger",
+    "lang": "go",
+    "source": "internal/gateway/learn.go#L332-L359",
+    "code": "func (s *Server) stageTrace(ctx context.Context, lc *learnCtx) (any, error) {\n\tslow := s.Window.Slowest(lc.faultOn)\n\tif slow.TraceID == \"\" {\n\t\treturn nil, fmt.Errorf(\"no slow search recorded since the fault\")\n\t}\n\tfor {\n\t\tspans, err := s.fetchTrace(ctx, slow.TraceID)\n\t\tvar acquire *Span\n\t\troot := false\n\t\tfor i := range spans {\n\t\t\tif spans[i].Name == \"db.pool.acquire\" {\n\t\t\t\tacquire = &spans[i]\n\t\t\t}\n\t\t\troot = root || (spans[i].Service == \"gateway\" && spans[i].Depth == 0)\n\t\t}\n\t\t// The gateway's server span ends last, so it reaches Jaeger last:\n\t\t// wait for it, or the waterfall would start one hop down.\n\t\tif err == nil && acquire != nil && root {\n\t\t\ttotal := spans[0].DurMs\n\t\t\treturn map[string]any{\"trace_id\": slow.TraceID, \"jaeger_url\": s.Learn.JaegerPublic + \"/trace/\" + slow.TraceID,\n\t\t\t\t\"total_ms\": total, \"acquire_ms\": acquire.DurMs, \"acquire_share\": round3(acquire.DurMs / total), \"spans\": spans, \"status\": slow.Status}, nil\n\t\t}\n\t\tif err := sleep(ctx, time.Second); err != nil { // the exporter batches for up to 500 ms\n\t\t\treturn nil, fmt.Errorf(\"trace %s not complete in Jaeger: %w\", slow.TraceID, err)\n\t\t}\n\t}\n}",
+    "segments": [
+      {
+        "lines": [
+          14
+        ],
+        "text": "修复后多一个条件：必须看到网关的根 span，深度是零。"
+      },
+      {
+        "lines": [
+          18,
+          19
+        ],
+        "text": "两个都齐了，才取总时长。"
+      },
+      {
+        "lines": [
+          23,
+          24
+        ],
+        "text": "没齐就等一秒再取，有总的超时兜底，不会一直等下去。"
+      },
+      {
+        "lines": [],
+        "text": "怎么证明？端到端测试断言瀑布图第一行是网关，而且总时长不小于拿连接的时长。"
+      },
+      {
+        "lines": [],
+        "text": "面试一句话：分布式 trace 是各服务异步上报的，判断完整要以根 span 为准。"
+      }
+    ],
+    "example_code": "func (s *Server) stageTrace(ctx context.Context, slow Slow) (any, error) {\n\tfor {\n\t\tspans, err := s.fetchTrace(ctx, slow.TraceID)\n\t\tvar acquire *Span\n\t\tfor i := range spans {\n\t\t\tif spans[i].Name == \"db.pool.acquire\" {\n\t\t\t\tacquire = &spans[i]\n\t\t\t}\n\t\t}\n\t\tif err == nil && acquire != nil && len(spans) > 0 {\n\t\t\ttotal := spans[0].DurMs\n\t\t\treturn map[string]any{\"total_ms\": total, \"acquire_ms\": acquire.DurMs}, nil\n\t\t}\n\t\tsleep(ctx, time.Second)\n\t}\n}",
+    "example_segments": [
+      {
+        "lines": [],
+        "text": "现象：教学页面抽到的慢 trace，第一行是搜索服务，网关那一行不见了，总时长也少了一跳。"
+      },
+      {
+        "lines": [],
+        "text": "过一会儿在 Jaeger 里打开同一条 trace，网关的 span 是在的。说明不是没发，是取得太早。"
+      },
+      {
+        "lines": [
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "text": "修复前，只要找到拿连接那个 span，就认为 trace 齐了。"
+      },
+      {
+        "lines": [
+          10,
+          11
+        ],
+        "text": "然后把第一行当成总时长。可每个服务是在自己结束时上报的，网关最后结束，也最后到。"
+      }
+    ],
+    "example_source": "docs/problems/snippets/trace_without_root.go#L11-L27"
+  },
+  {
+    "id": "q09-naive-alert-ranking",
+    "title": "按告警数量排，会把精力花错地方",
+    "subtitle": "半年合成告警历史：按影响排，连接池耗尽第一",
+    "lang": "sql",
+    "source": "analysis/sql/30_cause_ranking.sql#L4-L24",
+    "code": "CREATE OR REPLACE TABLE cause_ranking AS\nWITH inc AS (\n  SELECT cause, incident_id,\n         (unix_timestamp(resolved_at) - unix_timestamp(started_at)) / 60.0 AS minutes\n  FROM incidents\n), noisy AS (\n  SELECT cause, COUNT(*) AS episodes, SUM(fires) AS fires\n  FROM episode_incident WHERE cause IS NOT NULL GROUP BY cause\n)\nSELECT inc.cause,\n       COUNT(*)                                  AS incidents,\n       ROUND(SUM(minutes) / 60.0, 1)             AS impact_hours,\n       ROUND(percentile_approx(minutes, 0.5), 1) AS mttr_p50_min,\n       ROUND(percentile_approx(minutes, 0.9), 1) AS mttr_p90_min,\n       COALESCE(MAX(noisy.episodes), 0)          AS alert_episodes,\n       COALESCE(MAX(noisy.fires), 0)             AS alert_fires,\n       RANK() OVER (ORDER BY SUM(minutes) DESC)  AS impact_rank,\n       RANK() OVER (ORDER BY COUNT(*) DESC)      AS count_rank\nFROM inc LEFT JOIN noisy ON noisy.cause = inc.cause\nGROUP BY inc.cause\nORDER BY impact_rank;",
+    "segments": [
+      {
+        "lines": [],
+        "text": "先说清楚，这是合成数据，用固定种子生成。问题是：下个季度先治哪一类故障。"
+      },
+      {
+        "lines": [],
+        "text": "现象：告警最多的规则是磁盘使用率，一千多次，九成以上是噪音。次数最多的原因是依赖超时，五十一次。"
+      },
+      {
+        "lines": [
+          2,
+          3,
+          4,
+          5
+        ],
+        "text": "先算每次事故持续了多少分钟。"
+      },
+      {
+        "lines": [
+          6,
+          7,
+          8,
+          9
+        ],
+        "text": "合并重复告警、按时间关联到事故以后，再统计每个原因带来了多少告警。"
+      },
+      {
+        "lines": [
+          10,
+          11,
+          12,
+          13,
+          14
+        ],
+        "text": "然后按原因算次数、总影响小时数、恢复时间的中位数和九十分位。"
+      },
+      {
+        "lines": [
+          17,
+          18
+        ],
+        "text": "同时算两种排名：按总影响，和按次数。"
+      },
+      {
+        "lines": [],
+        "text": "结果：连接池耗尽三十三次、三十二小时，按影响第一，按次数只排第二。因为依赖超时十几分钟就好了。"
+      },
+      {
+        "lines": [],
+        "text": "怎么证明？测试不经过 SQL，直接从原始数据算真值来比对。把排名换成按次数，测试就变红。"
+      },
+      {
+        "lines": [],
+        "text": "面试一句话：先去重，再关联，再按影响排名，次数和告警量都会误导。"
+      }
+    ],
+    "example_code": "",
+    "example_segments": [],
+    "example_source": ""
+  }
+]

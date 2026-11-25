@@ -9,7 +9,9 @@ import (
 )
 
 // Window keeps the last two minutes of search latencies at the gateway,
-// one bucket per second. The console's live p99 curve and the learn
+// one bucket per second of request START time. Bucketing by start (not by
+// finish) matters for before/after comparisons: a request that queued for
+// 9 s under the old code and finished after the fix belongs to "before". The console's live p99 curve and the learn
 // page's "before / after" numbers are read from here.
 type Window struct {
 	mu      sync.Mutex
@@ -43,17 +45,21 @@ type Point struct {
 const searchRoute = "GET /api/search"
 
 // Observe is an obs.Observer.
+// @learn:window-observe
 func (w *Window) Observe(route string, status int, d time.Duration, traceID string) {
 	if route != searchRoute {
 		return
 	}
-	now := time.Now()
+	start := time.Now().Add(-d)
 	ms := float64(d.Microseconds()) / 1000
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	b := &w.buckets[now.Unix()%int64(len(w.buckets))]
-	if b.sec != now.Unix() {
-		*b = bucket{sec: now.Unix()}
+	b := &w.buckets[start.Unix()%int64(len(w.buckets))]
+	if b.sec != start.Unix() {
+		if b.sec > start.Unix() {
+			return // older than the ring
+		}
+		*b = bucket{sec: start.Unix()}
 	}
 	if len(b.lat) < 4000 {
 		b.lat = append(b.lat, ms)
@@ -61,10 +67,14 @@ func (w *Window) Observe(route string, status int, d time.Duration, traceID stri
 	if status >= 500 || status == 0 {
 		b.errs++
 	}
-	if ms > b.slow.Ms && traceID != "" {
-		b.slow = Slow{TraceID: traceID, Ms: ms, At: now.Add(-d), Status: status}
+	// slowest request that still completed: a timed-out one never ran its
+	// query, so its trace cannot show where the time would have gone
+	if ms > b.slow.Ms && traceID != "" && status < 400 {
+		b.slow = Slow{TraceID: traceID, Ms: ms, At: start, Status: status}
 	}
 }
+
+// @learn:end window-observe
 
 // Series returns the last n seconds, oldest first (seconds without traffic have N=0).
 func (w *Window) Series(n int) []Point {

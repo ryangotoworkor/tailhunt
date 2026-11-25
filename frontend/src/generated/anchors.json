@@ -1,0 +1,292 @@
+{
+  "acquire-timeout": {
+    "path": "internal/inventory/inventory.go",
+    "start": 91,
+    "end": 99
+  },
+  "alert-causes": {
+    "path": "analysis/gen_alerts.py",
+    "start": 53,
+    "end": 62
+  },
+  "alert-rules": {
+    "path": "deploy/prometheus/rules.yml",
+    "start": 8,
+    "end": 24
+  },
+  "anchor-refs": {
+    "path": "scripts/check_anchors.mjs",
+    "start": 26,
+    "end": 47
+  },
+  "bulkhead": {
+    "path": "internal/guard/guard.go",
+    "start": 19,
+    "end": 37
+  },
+  "bulkhead-too-wide": {
+    "path": "docs/problems/snippets/bulkhead_too_wide.go",
+    "start": 11,
+    "end": 25
+  },
+  "cut-anchor": {
+    "path": "scripts/build_problem_videos.mjs",
+    "start": 27,
+    "end": 35
+  },
+  "dbstats": {
+    "path": "internal/inventory/pool.go",
+    "start": 65,
+    "end": 73
+  },
+  "failing-controls": {
+    "path": "scripts/failing-controls.sh",
+    "start": 14,
+    "end": 47
+  },
+  "fix-config": {
+    "path": "internal/inventory/config.go",
+    "start": 18,
+    "end": 30
+  },
+  "hold-fixed": {
+    "path": "internal/inventory/hold.go",
+    "start": 118,
+    "end": 170
+  },
+  "hold-legacy": {
+    "path": "internal/inventory/hold.go",
+    "start": 179,
+    "end": 218
+  },
+  "hold-slot": {
+    "path": "internal/inventory/hold.go",
+    "start": 67,
+    "end": 93
+  },
+  "jaeger-before": {
+    "path": "docs/problems/snippets/jaeger_before.yml",
+    "start": 6,
+    "end": 12
+  },
+  "jaeger-memory": {
+    "path": "docker-compose.yml",
+    "start": 87,
+    "end": 98
+  },
+  "jwt-check": {
+    "path": "internal/gateway/auth.go",
+    "start": 103,
+    "end": 123
+  },
+  "obs-wrap": {
+    "path": "internal/obs/obs.go",
+    "start": 95,
+    "end": 132
+  },
+  "open-model": {
+    "path": "internal/loadgen/loadgen.go",
+    "start": 27,
+    "end": 58
+  },
+  "pandas-correlate": {
+    "path": "analysis/requestlog.py",
+    "start": 40,
+    "end": 51
+  },
+  "pg-activity": {
+    "path": "internal/inventory/pool.go",
+    "start": 94,
+    "end": 103
+  },
+  "pool-acquire": {
+    "path": "internal/inventory/pool.go",
+    "start": 29,
+    "end": 50
+  },
+  "pool-open": {
+    "path": "internal/inventory/db.go",
+    "start": 17,
+    "end": 38
+  },
+  "profile-count": {
+    "path": "scripts/profile.sh",
+    "start": 17,
+    "end": 18
+  },
+  "profile-count-before": {
+    "path": "docs/problems/snippets/profile_count_before.sh",
+    "start": 7,
+    "end": 7
+  },
+  "quote-fault": {
+    "path": "internal/quote/fault.go",
+    "start": 29,
+    "end": 36
+  },
+  "rank-bench": {
+    "path": "internal/search/rank_test.go",
+    "start": 86,
+    "end": 99
+  },
+  "rank-column": {
+    "path": "analysis/analyze_alerts.py",
+    "start": 37,
+    "end": 41
+  },
+  "rank-fixed": {
+    "path": "internal/search/rank.go",
+    "start": 44,
+    "end": 78
+  },
+  "rank-legacy": {
+    "path": "internal/search/rank.go",
+    "start": 30,
+    "end": 37
+  },
+  "record-frame": {
+    "path": "video/record.mjs",
+    "start": 35,
+    "end": 80
+  },
+  "record-pacing": {
+    "path": "video/record.mjs",
+    "start": 152,
+    "end": 165
+  },
+  "reqlog-line": {
+    "path": "internal/obs/reqlog.go",
+    "start": 18,
+    "end": 27
+  },
+  "rule-advice": {
+    "path": "analysis/analyze_alerts.py",
+    "start": 46,
+    "end": 61
+  },
+  "sabotage": {
+    "path": "internal/inventory/config.go",
+    "start": 46,
+    "end": 73
+  },
+  "sabotage-loop-bash32": {
+    "path": "docs/problems/snippets/failing_controls_bash32.sh",
+    "start": 7,
+    "end": 13
+  },
+  "search-fanout": {
+    "path": "internal/search/search.go",
+    "start": 63,
+    "end": 99
+  },
+  "sql-cause-ranking": {
+    "path": "analysis/sql/30_cause_ranking.sql",
+    "start": 4,
+    "end": 24
+  },
+  "sql-endpoint-latency": {
+    "path": "analysis/sql/60_requestlog.sql",
+    "start": 7,
+    "end": 16
+  },
+  "sql-episodes": {
+    "path": "analysis/sql/10_episodes.sql",
+    "start": 6,
+    "end": 23
+  },
+  "sql-link": {
+    "path": "analysis/sql/20_link.sql",
+    "start": 8,
+    "end": 22
+  },
+  "sql-rule-quality": {
+    "path": "analysis/sql/40_rule_quality.sql",
+    "start": 5,
+    "end": 26
+  },
+  "sql-spike-windows": {
+    "path": "analysis/sql/60_requestlog.sql",
+    "start": 32,
+    "end": 42
+  },
+  "sql-trace-join": {
+    "path": "analysis/sql/60_requestlog.sql",
+    "start": 23,
+    "end": 28
+  },
+  "stage-alert": {
+    "path": "internal/gateway/learn.go",
+    "start": 232,
+    "end": 287
+  },
+  "stage-culprit": {
+    "path": "internal/gateway/learn.go",
+    "start": 450,
+    "end": 473
+  },
+  "stage-dbstats": {
+    "path": "internal/gateway/learn.go",
+    "start": 425,
+    "end": 446
+  },
+  "stage-fix": {
+    "path": "internal/gateway/learn.go",
+    "start": 477,
+    "end": 488
+  },
+  "stage-history": {
+    "path": "internal/gateway/learn.go",
+    "start": 515,
+    "end": 547
+  },
+  "stage-p99": {
+    "path": "internal/gateway/learn.go",
+    "start": 291,
+    "end": 319
+  },
+  "stage-trace": {
+    "path": "internal/gateway/learn.go",
+    "start": 332,
+    "end": 359
+  },
+  "stage-verify": {
+    "path": "internal/gateway/learn.go",
+    "start": 492,
+    "end": 511
+  },
+  "sweeper": {
+    "path": "internal/inventory/sweeper.go",
+    "start": 13,
+    "end": 29
+  },
+  "test-fixed": {
+    "path": "internal/inventory/incident_test.go",
+    "start": 98,
+    "end": 107
+  },
+  "test-reproduce": {
+    "path": "internal/inventory/incident_test.go",
+    "start": 79,
+    "end": 88
+  },
+  "test-top-cause": {
+    "path": "analysis/tests/test_alerts.py",
+    "start": 31,
+    "end": 40
+  },
+  "trace-without-root": {
+    "path": "docs/problems/snippets/trace_without_root.go",
+    "start": 11,
+    "end": 27
+  },
+  "window-by-finish": {
+    "path": "docs/problems/snippets/window_by_finish.go",
+    "start": 10,
+    "end": 24
+  },
+  "window-observe": {
+    "path": "internal/gateway/window.go",
+    "start": 49,
+    "end": 76
+  }
+}

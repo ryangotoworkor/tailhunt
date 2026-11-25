@@ -36,6 +36,10 @@ func main() {
 		PromURL:      platform.Env("PROM_URL", "http://localhost:9198"),
 		JaegerURL:    platform.Env("JAEGER_QUERY_URL", "http://localhost:16698"),
 		Window:       &gateway.Window{},
+		Learn: &gateway.Learn{
+			AnalysisDir:  platform.Env("ANALYSIS_DIR", "analysis/out"),
+			JaegerPublic: platform.Env("JAEGER_PUBLIC_URL", "http://localhost:16698"),
+		},
 	}
 	s.Traffic = &gateway.Traffic{
 		Base:   "http://localhost:" + platform.Env("PORT", "8880"),

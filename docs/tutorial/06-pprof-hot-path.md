@@ -10,7 +10,7 @@ GC 是另一种尾延迟来源：分配越多，停顿越频繁。
 
 ## 怎么拿到线上的分配 profile？
 
-每个服务都挂了 `/debug/pprof/`（[obs.go#obs-wrap](../../internal/obs/obs.go)）。
+每个服务都挂了 `/debug/pprof/`（[obs.go#obs-wrap](../../internal/obs/obs.go#obs-wrap)）。
 `allocs?seconds=10` 是**增量** profile：只统计这十秒里新分配的，不混进启动时的东西。
 
 [profile.sh](../../scripts/profile.sh) 做的事：网关每秒六十个搜索，抓十秒 allocs profile，同时读 search 自己的请求计数器，算「每个请求分配多少字节」。legacy 和 fixed 交替跑三轮。
@@ -30,7 +30,7 @@ $ go tool pprof -top -sample_index=alloc_space legacy-r3.pb.gz
 
 ## 为什么排序会分配这么多？
 
-假设：分配和比较次数成正比。看 [rank.go#rank-legacy](../../internal/search/rank.go)：
+假设：分配和比较次数成正比。看 [rank.go#rank-legacy](../../internal/search/rank.go#rank-legacy)：
 
 ```go
 sort.Slice(rs, func(i, j int) bool { return rankKey(rs[i], tier) < rankKey(rs[j], tier) })
@@ -41,7 +41,7 @@ sort.Slice(rs, func(i, j int) bool { return rankKey(rs[i], tier) < rankKey(rs[j]
 
 ## 怎么修？
 
-[rank.go#rank-fixed](../../internal/search/rank.go)：直接比字段，名字用逐字节的大小写无关比较，不生成任何字符串。
+[rank.go#rank-fixed](../../internal/search/rank.go#rank-fixed)：直接比字段，名字用逐字节的大小写无关比较，不生成任何字符串。
 
 修之前先写了等价性测试，五百轮随机数据对比两种实现的排序结果。**第一次跑就红了：**
 
@@ -61,7 +61,7 @@ sort.Slice(rs, func(i, j int) bool { return rankKey(rs[i], tier) < rankKey(rs[j]
 
 ## 修完的效果
 
-微基准（`go test -bench Rank -benchmem -count=5`，在本机 Apple M5 Pro 上跑，取中位数；数据里价格经常打平，所以比较经常走到名字那一步）：
+微基准（[rank_test.go#rank-bench](../../internal/search/rank_test.go#rank-bench)，`go test -bench Rank -benchmem -count=5`，在本机 Apple M5 Pro 上跑，取中位数；数据里价格经常打平，所以比较经常走到名字那一步）：
 
 | 实现 | ns/op | B/op | allocs/op |
 |---|---:|---:|---:|

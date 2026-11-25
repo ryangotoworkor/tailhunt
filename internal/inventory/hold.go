@@ -63,6 +63,7 @@ func (s *Server) hold(w http.ResponseWriter, r *http.Request) {
 // ErrBusy means the hold could not get a bulkhead slot or a connection in time.
 var ErrBusy = errors.New("holds are busy, retry")
 
+// @learn:hold-slot
 func (s *Server) placeHold(ctx context.Context, req HoldRequest) (Hold, error) {
 	cfg := s.Config()
 	if cfg.QuoteOutsideTx {
@@ -89,6 +90,8 @@ func (s *Server) holdSlot(ctx context.Context, cfg Config) (func(), error) {
 	}
 	return release, nil
 }
+
+// @learn:end hold-slot
 
 // price calls quote, behind a timeout and a breaker when QuoteGuard is on.
 func (s *Server) price(ctx context.Context, req HoldRequest, cfg Config) (int, error) {

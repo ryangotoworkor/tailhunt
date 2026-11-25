@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/ryangotoworkor/tailhunt/internal/platform"
 )
@@ -34,7 +35,12 @@ func (s *Server) mountAdmin(mux *http.ServeMux) {
 		if n <= 0 {
 			n = 60
 		}
-		platform.JSON(w, 200, map[string]any{"series": s.Window.Series(n)})
+		slow := s.Window.Slowest(time.Now().Add(-30 * time.Second))
+		out := map[string]any{"series": s.Window.Series(n), "slowest": slow}
+		if slow.TraceID != "" && s.Learn != nil {
+			out["slowest_url"] = s.Learn.JaegerPublic + "/trace/" + slow.TraceID
+		}
+		platform.JSON(w, 200, out)
 	}))
 }
 

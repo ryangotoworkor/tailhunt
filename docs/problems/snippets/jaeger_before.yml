@@ -1,0 +1,13 @@
+# First version of the Jaeger service in docker-compose.yml. During a 90 s
+# incident (55 req/s, about 8 spans per trace) it reached the 160m cap and
+# was OOM-killed (exit 137), and with no restart policy it stayed down.
+services:
+  # @learn:jaeger-before
+  jaeger:
+    image: jaegertracing/all-in-one:1.76.0
+    mem_limit: 160m
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+      MEMORY_MAX_TRACES: "8000"
+    ports: ["16698:16686", "4337:4317", "4338:4318"]
+  # @learn:end jaeger-before

@@ -1,7 +1,7 @@
 # tailhunt: six Go services on one Postgres.
 # Host ports: gateway 8880, search 8881, inventory 8882, quote 8883,
 # profile 8884, risk 8885, Postgres 54389, Jaeger UI 16698 (OTLP 4337 grpc /
-# 4338 http), Prometheus 9198, Grafana 3098. Total memory cap ~1.0 GiB.
+# 4338 http), Prometheus 9198, Grafana 3098. Total memory cap ~1.04 GiB.
 # Always run with: docker-compose -p tailhunt ...
 name: tailhunt
 
@@ -24,6 +24,7 @@ x-go: &go
 services:
   postgres:
     image: postgres:16-alpine
+    restart: unless-stopped
     mem_limit: 192m
     environment:
       POSTGRES_USER: tailhunt
@@ -47,6 +48,8 @@ services:
       JWT_SECRET: ${JWT_SECRET:-dev-only-not-a-real-secret}
       PROM_URL: http://prometheus:9090
       JAEGER_QUERY_URL: http://jaeger:16686
+      ANALYSIS_DIR: /analysis
+    volumes: ["./var/logs:/logs", "./analysis/out:/analysis:ro"]
     ports: ["8880:8880"]
     depends_on: {postgres: {condition: service_healthy}, search: {condition: service_started}, inventory: {condition: service_started}}
 
@@ -80,16 +83,24 @@ services:
     command: ["risk"]
     ports: ["8885:8885"]
 
+  # @learn:jaeger-memory
   jaeger:
     image: jaegertracing/all-in-one:1.76.0
-    mem_limit: 160m
+    restart: unless-stopped
+    # In-memory storage. 8000 traces got it OOM-killed at 160m during a
+    # 90 s incident (55 req/s, ~8 spans each); 3000 plus a soft Go memory
+    # limit keeps it well under the cap.
+    mem_limit: 200m
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
-      MEMORY_MAX_TRACES: "8000"
+      MEMORY_MAX_TRACES: "3000"
+      GOMEMLIMIT: 150MiB
     ports: ["16698:16686", "4337:4317", "4338:4318"]
+  # @learn:end jaeger-memory
 
   prometheus:
     image: prom/prometheus:v3.5.0
+    restart: unless-stopped
     mem_limit: 160m
     volumes: ["./deploy/prometheus:/etc/prometheus:ro"]
     command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=3h"]
@@ -97,6 +108,7 @@ services:
 
   grafana:
     image: grafana/grafana:12.2.1
+    restart: unless-stopped
     mem_limit: 200m
     environment:
       GF_AUTH_ANONYMOUS_ENABLED: "true"

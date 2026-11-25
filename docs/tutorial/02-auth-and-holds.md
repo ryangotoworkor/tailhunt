@@ -13,7 +13,7 @@
 
 ## 鉴权怎么做？为什么账号表不放在 inventory？
 
-[auth.go#jwt-check](../../internal/gateway/auth.go)：标准 HS256，`jwt.WithValidMethods` 钉死算法，防止 `alg: none` 这类攻击。
+[auth.go#jwt-check](../../internal/gateway/auth.go#jwt-check)：标准 HS256，`jwt.WithValidMethods` 钉死算法，防止 `alg: none` 这类攻击。
 secret 运行时从 `JWT_SECRET` 读，代码里的默认值是明显的 `dev-only-...` 占位。
 
 账号表放在 gateway 自己的连接池里（最多两条连接），**不和 inventory 共用池子**。
@@ -21,7 +21,7 @@ secret 运行时从 `JWT_SECRET` 读，代码里的默认值是明显的 `dev-on
 
 ## 锁房为什么要在事务里调报价？
 
-看 [hold.go#hold-legacy](../../internal/inventory/hold.go)。这是「第一版」的写法：
+看 [hold.go#hold-legacy](../../internal/inventory/hold.go#hold-legacy)。这是「第一版」的写法：
 
 1. `BEGIN`
 2. `SELECT rooms_left ... FOR UPDATE` 锁住这一晚的这一行
@@ -55,7 +55,7 @@ $ docker exec tailhunt-postgres-1 psql -U tailhunt -c "select id,hotel_id,night,
 
 ## 过期清理为什么写成一条 SQL？
 
-[sweeper.go#sweeper](../../internal/inventory/sweeper.go) 用一个 CTE：先把过期 hold 标成 `expired`，再按晚汇总、加回 `rooms_left`。
+[sweeper.go#sweeper](../../internal/inventory/sweeper.go#sweeper) 用一个 CTE：先把过期 hold 标成 `expired`，再按晚汇总、加回 `rooms_left`。
 一条语句就是一个隐式事务。进程在中间崩掉，也不会出现「hold 过期了，房间没还回去」。
 
 注意：清理任务**也用同一个连接池**。池子满的时候，它也得排队。这一点在第 5 章的 runbook 里会用到。

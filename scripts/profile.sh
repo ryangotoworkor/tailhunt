@@ -13,8 +13,10 @@ SEARCH=${SEARCH:-http://localhost:8881}
 PY=.venv/bin/python
 TOK=$(curl -sf "$GW/api/login" -d '{"username":"oncall","password":"oncall-demo"}' | $PY -c 'import json,sys; print(json.load(sys.stdin)["token"])')
 api() { curl -sf -H "Authorization: Bearer $TOK" "$GW/api/admin/$1" ${2:+-d "$2"} >/dev/null; }
+# @learn:profile-count
 # $NF, not $2: the route label ("GET /search") contains a space.
 count() { curl -sf "$SEARCH/metrics" | awk '/^tailhunt_http_server_duration_seconds_count\{.*route="GET \/search".*svc="search"/ {s+=$NF} END {printf "%d", s}'; }
+# @learn:end profile-count
 mkdir -p .runtime/pprof
 runs=docs/results/profile-runs.jsonl
 : > "$runs"

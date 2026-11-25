@@ -9,12 +9,12 @@
 
 | 层 | 开关 | 防什么 | 代码 |
 |---|---|---|---|
-| 拿连接超时 | `acquire_timeout` | 池子满时，搜索八十毫秒内失败，不排几秒的队 | [inventory.go#acquire-timeout](../../internal/inventory/inventory.go) |
-| 舱壁（bulkhead） | `bulkhead` | 锁房最多占六条里的两条，搜索永远有连接 | [guard.go#bulkhead](../../internal/guard/guard.go) |
-| 报价挪出事务 | `quote_outside_tx` | **根治**：事务里不再有网络调用 | [hold.go#hold-fixed](../../internal/inventory/hold.go) |
+| 拿连接超时 | `acquire_timeout` | 池子满时，搜索八十毫秒内失败，不排几秒的队 | [inventory.go#acquire-timeout](../../internal/inventory/inventory.go#acquire-timeout) |
+| 舱壁（bulkhead） | `bulkhead` | 锁房最多占六条里的两条，搜索永远有连接 | [guard.go#bulkhead](../../internal/guard/guard.go#bulkhead) |
+| 报价挪出事务 | `quote_outside_tx` | **根治**：事务里不再有网络调用 | [hold.go#hold-fixed](../../internal/inventory/hold.go#hold-fixed) |
 | 报价超时 + 熔断 | `quote_guard` | quote 彻底卡死时，锁房八百毫秒失败，连错五次后直接拒绝 | [hold.go](../../internal/inventory/hold.go) 的 `price` |
 
-四个开关在 [config.go#fix-config](../../internal/inventory/config.go)，运行时可切：
+四个开关在 [config.go#fix-config](../../internal/inventory/config.go#fix-config)，运行时可切：
 
 ```
 $ curl -s localhost:8880/api/admin/mode -H "$A" -d '{"mode":"legacy"}'
@@ -23,10 +23,10 @@ $ curl -s localhost:8880/api/admin/mode -H "$A" -d '{"mode":"fixed"}'
 
 ## 根治那一层为什么这样改？
 
-修复前（[hold.go#hold-legacy](../../internal/inventory/hold.go)）：
+修复前（[hold.go#hold-legacy](../../internal/inventory/hold.go#hold-legacy)）：
 `BEGIN → SELECT ... FOR UPDATE → 调 quote → UPDATE → INSERT → COMMIT`。
 
-修复后（[hold.go#hold-fixed](../../internal/inventory/hold.go)）：
+修复后（[hold.go#hold-fixed](../../internal/inventory/hold.go#hold-fixed)）：
 `调 quote → 拿连接 → BEGIN → UPDATE ... WHERE rooms_left > 0 RETURNING → INSERT → COMMIT`。
 
 两点变化：
@@ -62,8 +62,8 @@ incident_test.go:99: availability: n=200 p50=1.2ms p99=4.1ms err=0.00% | holds: 
 | `TestFix_QuoteGuardBoundsHoldLatencyAndOpensTheBreaker` | 全开，quote 卡两秒 | 每次锁房不超过一点二秒，第六次被熔断器立刻拒绝 |
 | `TestFix_AllLayersKeepAvailabilityFast` | 全开 | 房态 p99 不超过一百毫秒、错误率不超过百分之一；锁房错误率不超过百分之五 |
 
-光有绿灯不够。`TAILHUNT_SABOTAGE=<层>` 会在测试背后把那一层强行关掉（[config.go#sabotage](../../internal/inventory/config.go)），
-[failing-controls.sh#failing-controls](../../scripts/failing-controls.sh) 要求「关掉就红、打开就绿」。真跑的结果：
+光有绿灯不够。`TAILHUNT_SABOTAGE=<层>` 会在测试背后把那一层强行关掉（[config.go#sabotage](../../internal/inventory/config.go#sabotage)），
+[failing-controls.sh#failing-controls](../../scripts/failing-controls.sh#failing-controls) 要求「关掉就红、打开就绿」。真跑的结果：
 
 ```
 timeout    sabotaged TestFix_AcquireTimeoutFailsFastInsteadOfQueueing        FAIL (ok)
