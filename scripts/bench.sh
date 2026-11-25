@@ -14,7 +14,7 @@ GW=${GW:-http://localhost:8880}
 ROUNDS=${ROUNDS:-3}
 DUR=${DUR:-20s}
 PY=.venv/bin/python
-[ -x $PY ] || { echo "make the venv first: see analysis/README.md"; exit 1; }
+[ -x $PY ] || { echo "make the venv first: ./scripts/analyze.sh creates it"; exit 1; }
 go build -o bin/loadgen ./cmd/loadgen
 TOK=$(curl -sf "$GW/api/login" -d '{"username":"oncall","password":"oncall-demo"}' | $PY -c 'import json,sys; print(json.load(sys.stdin)["token"])')
 api() { curl -sf -H "Authorization: Bearer $TOK" "$GW/api/admin/$1" ${2:+-d "$2"} >/dev/null; }

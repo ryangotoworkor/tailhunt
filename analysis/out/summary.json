@@ -1,0 +1,514 @@
+{
+  "synthetic": true,
+  "generator": "analysis/gen_alerts.py (seed 20261125)",
+  "totals": {
+    "fires": 3049,
+    "episodes": 1511,
+    "noise_episodes": 1126,
+    "noise_fires": 1676,
+    "incidents": 173,
+    "incidents_alerted": 169,
+    "since": "2026-05-01",
+    "until": "2026-10-31",
+    "noise_rate_fires": 0.55,
+    "noise_rate_episodes": 0.745,
+    "dedup_ratio": 2.02
+  },
+  "noise_rate_truth_note": "ground truth lives in data/alerts_truth.csv; the SQL never reads it",
+  "rank_by": "impact",
+  "causes": [
+    {
+      "cause": "db_pool_exhaustion",
+      "incidents": 33,
+      "impact_hours": 32.1,
+      "mttr_p50_min": 54.2,
+      "mttr_p90_min": 81.7,
+      "alert_episodes": 88,
+      "alert_fires": 521.0,
+      "impact_rank": 1,
+      "count_rank": 2
+    },
+    {
+      "cause": "slow_query",
+      "incidents": 24,
+      "impact_hours": 21.9,
+      "mttr_p50_min": 53.1,
+      "mttr_p90_min": 86.6,
+      "alert_episodes": 66,
+      "alert_fires": 216.0,
+      "impact_rank": 2,
+      "count_rank": 4
+    },
+    {
+      "cause": "disk_full",
+      "incidents": 13,
+      "impact_hours": 19.9,
+      "mttr_p50_min": 70.8,
+      "mttr_p90_min": 157.3,
+      "alert_episodes": 36,
+      "alert_fires": 198.0,
+      "impact_rank": 3,
+      "count_rank": 6
+    },
+    {
+      "cause": "dependency_timeout",
+      "incidents": 51,
+      "impact_hours": 19.4,
+      "mttr_p50_min": 17.6,
+      "mttr_p90_min": 40.7,
+      "alert_episodes": 97,
+      "alert_fires": 206.0,
+      "impact_rank": 4,
+      "count_rank": 1
+    },
+    {
+      "cause": "deploy_rollback",
+      "incidents": 27,
+      "impact_hours": 10.9,
+      "mttr_p50_min": 21.6,
+      "mttr_p90_min": 40.7,
+      "alert_episodes": 50,
+      "alert_fires": 92.0,
+      "impact_rank": 5,
+      "count_rank": 3
+    },
+    {
+      "cause": "memory_leak_oom",
+      "incidents": 16,
+      "impact_hours": 6.6,
+      "mttr_p50_min": 23.7,
+      "mttr_p90_min": 34.8,
+      "alert_episodes": 35,
+      "alert_fires": 82.0,
+      "impact_rank": 6,
+      "count_rank": 5
+    },
+    {
+      "cause": "config_error",
+      "incidents": 8,
+      "impact_hours": 6.0,
+      "mttr_p50_min": 43.2,
+      "mttr_p90_min": 73.8,
+      "alert_episodes": 8,
+      "alert_fires": 25.0,
+      "impact_rank": 7,
+      "count_rank": 7
+    },
+    {
+      "cause": "cert_expiry",
+      "incidents": 1,
+      "impact_hours": 1.9,
+      "mttr_p50_min": 113.8,
+      "mttr_p90_min": 113.8,
+      "alert_episodes": 5,
+      "alert_fires": 33.0,
+      "impact_rank": 8,
+      "count_rank": 8
+    }
+  ],
+  "rules": [
+    {
+      "rule": "DiskUsageHigh",
+      "fires": 1035,
+      "episodes": 506,
+      "fires_per_episode": 2.05,
+      "noise_episodes": 473.0,
+      "noise_rate": 0.935,
+      "incidents_caught": 29,
+      "detect_p50_min": 4.1,
+      "episodes_per_week": 19.3,
+      "action": "demote to ticket or raise the threshold: it pages for nothing most of the time"
+    },
+    {
+      "rule": "CPUHigh",
+      "fires": 483,
+      "episodes": 374,
+      "fires_per_episode": 1.29,
+      "noise_episodes": 352.0,
+      "noise_rate": 0.941,
+      "incidents_caught": 21,
+      "detect_p50_min": 10.8,
+      "episodes_per_week": 14.3,
+      "action": "demote to ticket or raise the threshold: it pages for nothing most of the time"
+    },
+    {
+      "rule": "SearchP99High",
+      "fires": 444,
+      "episodes": 181,
+      "fires_per_episode": 2.45,
+      "noise_episodes": 107.0,
+      "noise_rate": 0.591,
+      "incidents_caught": 68,
+      "detect_p50_min": 3.4,
+      "episodes_per_week": 6.9,
+      "action": "keep"
+    },
+    {
+      "rule": "GatewayErrorRate",
+      "fires": 255,
+      "episodes": 60,
+      "fires_per_episode": 4.25,
+      "noise_episodes": 0.0,
+      "noise_rate": 0.0,
+      "incidents_caught": 60,
+      "detect_p50_min": 3.5,
+      "episodes_per_week": 2.3,
+      "action": "add for / repeat_interval: it re-fires several times per episode"
+    },
+    {
+      "rule": "InventoryQueryLatencyHigh",
+      "fires": 185,
+      "episodes": 38,
+      "fires_per_episode": 4.87,
+      "noise_episodes": 0.0,
+      "noise_rate": 0.0,
+      "incidents_caught": 36,
+      "detect_p50_min": 3.3,
+      "episodes_per_week": 1.4,
+      "action": "add for / repeat_interval: it re-fires several times per episode"
+    },
+    {
+      "rule": "QuoteLatencyHigh",
+      "fires": 174,
+      "episodes": 113,
+      "fires_per_episode": 1.54,
+      "noise_episodes": 57.0,
+      "noise_rate": 0.504,
+      "incidents_caught": 54,
+      "detect_p50_min": 2.6,
+      "episodes_per_week": 4.3,
+      "action": "keep"
+    },
+    {
+      "rule": "InventoryDBPoolSaturated",
+      "fires": 139,
+      "episodes": 22,
+      "fires_per_episode": 6.32,
+      "noise_episodes": 0.0,
+      "noise_rate": 0.0,
+      "incidents_caught": 21,
+      "detect_p50_min": 3.5,
+      "episodes_per_week": 0.8,
+      "action": "add for / repeat_interval: it re-fires several times per episode"
+    },
+    {
+      "rule": "PodRestarts",
+      "fires": 131,
+      "episodes": 99,
+      "fires_per_episode": 1.32,
+      "noise_episodes": 79.0,
+      "noise_rate": 0.798,
+      "incidents_caught": 20,
+      "detect_p50_min": 3.5,
+      "episodes_per_week": 3.8,
+      "action": "keep"
+    },
+    {
+      "rule": "HoldErrorRate",
+      "fires": 86,
+      "episodes": 36,
+      "fires_per_episode": 2.39,
+      "noise_episodes": 0.0,
+      "noise_rate": 0.0,
+      "incidents_caught": 36,
+      "detect_p50_min": 2.6,
+      "episodes_per_week": 1.4,
+      "action": "keep paging: precise and catches many incidents"
+    },
+    {
+      "rule": "CertExpiringSoon",
+      "fires": 60,
+      "episodes": 60,
+      "fires_per_episode": 1.0,
+      "noise_episodes": 58.0,
+      "noise_rate": 0.967,
+      "incidents_caught": 2,
+      "detect_p50_min": 6.5,
+      "episodes_per_week": 2.3,
+      "action": "route to a ticket: a preventive warning (one fire per episode), not a page"
+    },
+    {
+      "rule": "DeployHealthCheckFailed",
+      "fires": 42,
+      "episodes": 21,
+      "fires_per_episode": 2.0,
+      "noise_episodes": 0.0,
+      "noise_rate": 0.0,
+      "incidents_caught": 21,
+      "detect_p50_min": 3.4,
+      "episodes_per_week": 0.8,
+      "action": "keep paging: precise and catches many incidents"
+    },
+    {
+      "rule": "TLSHandshakeErrors",
+      "fires": 15,
+      "episodes": 1,
+      "fires_per_episode": 15.0,
+      "noise_episodes": 0.0,
+      "noise_rate": 0.0,
+      "incidents_caught": 1,
+      "detect_p50_min": 1.0,
+      "episodes_per_week": 0.0,
+      "action": "add for / repeat_interval: it re-fires several times per episode"
+    }
+  ],
+  "monthly": [
+    {
+      "month": "2026-05",
+      "cause": "db_pool_exhaustion",
+      "incidents": 2,
+      "impact_hours": 2.7
+    },
+    {
+      "month": "2026-05",
+      "cause": "dependency_timeout",
+      "incidents": 7,
+      "impact_hours": 3.1
+    },
+    {
+      "month": "2026-05",
+      "cause": "deploy_rollback",
+      "incidents": 3,
+      "impact_hours": 1.2
+    },
+    {
+      "month": "2026-05",
+      "cause": "disk_full",
+      "incidents": 3,
+      "impact_hours": 3.9
+    },
+    {
+      "month": "2026-05",
+      "cause": "memory_leak_oom",
+      "incidents": 2,
+      "impact_hours": 0.9
+    },
+    {
+      "month": "2026-05",
+      "cause": "slow_query",
+      "incidents": 3,
+      "impact_hours": 1.9
+    },
+    {
+      "month": "2026-06",
+      "cause": "cert_expiry",
+      "incidents": 1,
+      "impact_hours": 1.9
+    },
+    {
+      "month": "2026-06",
+      "cause": "config_error",
+      "incidents": 1,
+      "impact_hours": 0.4
+    },
+    {
+      "month": "2026-06",
+      "cause": "db_pool_exhaustion",
+      "incidents": 4,
+      "impact_hours": 2.4
+    },
+    {
+      "month": "2026-06",
+      "cause": "dependency_timeout",
+      "incidents": 8,
+      "impact_hours": 3.6
+    },
+    {
+      "month": "2026-06",
+      "cause": "deploy_rollback",
+      "incidents": 2,
+      "impact_hours": 0.9
+    },
+    {
+      "month": "2026-06",
+      "cause": "disk_full",
+      "incidents": 1,
+      "impact_hours": 0.7
+    },
+    {
+      "month": "2026-06",
+      "cause": "memory_leak_oom",
+      "incidents": 4,
+      "impact_hours": 1.5
+    },
+    {
+      "month": "2026-06",
+      "cause": "slow_query",
+      "incidents": 3,
+      "impact_hours": 3.1
+    },
+    {
+      "month": "2026-07",
+      "cause": "config_error",
+      "incidents": 1,
+      "impact_hours": 0.5
+    },
+    {
+      "month": "2026-07",
+      "cause": "db_pool_exhaustion",
+      "incidents": 5,
+      "impact_hours": 8.2
+    },
+    {
+      "month": "2026-07",
+      "cause": "dependency_timeout",
+      "incidents": 10,
+      "impact_hours": 3.1
+    },
+    {
+      "month": "2026-07",
+      "cause": "deploy_rollback",
+      "incidents": 6,
+      "impact_hours": 2.4
+    },
+    {
+      "month": "2026-07",
+      "cause": "disk_full",
+      "incidents": 1,
+      "impact_hours": 1.2
+    },
+    {
+      "month": "2026-07",
+      "cause": "memory_leak_oom",
+      "incidents": 1,
+      "impact_hours": 0.2
+    },
+    {
+      "month": "2026-07",
+      "cause": "slow_query",
+      "incidents": 4,
+      "impact_hours": 3.9
+    },
+    {
+      "month": "2026-08",
+      "cause": "config_error",
+      "incidents": 2,
+      "impact_hours": 1.8
+    },
+    {
+      "month": "2026-08",
+      "cause": "db_pool_exhaustion",
+      "incidents": 8,
+      "impact_hours": 7.2
+    },
+    {
+      "month": "2026-08",
+      "cause": "dependency_timeout",
+      "incidents": 7,
+      "impact_hours": 3.8
+    },
+    {
+      "month": "2026-08",
+      "cause": "deploy_rollback",
+      "incidents": 4,
+      "impact_hours": 1.5
+    },
+    {
+      "month": "2026-08",
+      "cause": "disk_full",
+      "incidents": 2,
+      "impact_hours": 6.3
+    },
+    {
+      "month": "2026-08",
+      "cause": "memory_leak_oom",
+      "incidents": 3,
+      "impact_hours": 1.4
+    },
+    {
+      "month": "2026-08",
+      "cause": "slow_query",
+      "incidents": 4,
+      "impact_hours": 2.7
+    },
+    {
+      "month": "2026-09",
+      "cause": "config_error",
+      "incidents": 3,
+      "impact_hours": 2.4
+    },
+    {
+      "month": "2026-09",
+      "cause": "db_pool_exhaustion",
+      "incidents": 7,
+      "impact_hours": 5.5
+    },
+    {
+      "month": "2026-09",
+      "cause": "dependency_timeout",
+      "incidents": 11,
+      "impact_hours": 3.2
+    },
+    {
+      "month": "2026-09",
+      "cause": "deploy_rollback",
+      "incidents": 8,
+      "impact_hours": 3.1
+    },
+    {
+      "month": "2026-09",
+      "cause": "disk_full",
+      "incidents": 3,
+      "impact_hours": 5.0
+    },
+    {
+      "month": "2026-09",
+      "cause": "memory_leak_oom",
+      "incidents": 3,
+      "impact_hours": 1.7
+    },
+    {
+      "month": "2026-09",
+      "cause": "slow_query",
+      "incidents": 8,
+      "impact_hours": 8.7
+    },
+    {
+      "month": "2026-10",
+      "cause": "config_error",
+      "incidents": 1,
+      "impact_hours": 0.8
+    },
+    {
+      "month": "2026-10",
+      "cause": "db_pool_exhaustion",
+      "incidents": 7,
+      "impact_hours": 6.0
+    },
+    {
+      "month": "2026-10",
+      "cause": "dependency_timeout",
+      "incidents": 8,
+      "impact_hours": 2.5
+    },
+    {
+      "month": "2026-10",
+      "cause": "deploy_rollback",
+      "incidents": 4,
+      "impact_hours": 1.8
+    },
+    {
+      "month": "2026-10",
+      "cause": "disk_full",
+      "incidents": 3,
+      "impact_hours": 2.9
+    },
+    {
+      "month": "2026-10",
+      "cause": "memory_leak_oom",
+      "incidents": 3,
+      "impact_hours": 1.0
+    },
+    {
+      "month": "2026-10",
+      "cause": "slow_query",
+      "incidents": 2,
+      "impact_hours": 1.6
+    }
+  ],
+  "naive": {
+    "top_rule_by_fires": "DiskUsageHigh",
+    "its_noise_rate": 0.935,
+    "top_cause_by_count": "dependency_timeout"
+  }
+}

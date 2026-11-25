@@ -1,0 +1,6 @@
+# exact pins so CI computes the same numbers as a laptop
+duckdb==2.0.1
+pandas==3.1.1
+numpy==2.4.6
+matplotlib==3.11.2
+pytest==9.2.0

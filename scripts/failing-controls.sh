@@ -34,6 +34,17 @@ for p in "${pairs[@]}"; do
     log "           $detail"
   done
 done
+# The alert analysis has its own control: rank causes by incident count
+# (the naive choice) and the test that pins the planted top cause must fail.
+for mode in sabotaged clean; do
+  val=""; [ "$mode" = sabotaged ] && val=count
+  res=$(TAILHUNT_ANALYSIS_RANK="$val" .venv/bin/python -m pytest -q analysis -k planted_top_cause 2>&1)
+  verdict=FAIL; grep -qE "^1 passed" <<<"$(tail -1 <<<"$res")" && verdict=PASS
+  want=PASS; [ "$mode" = sabotaged ] && want=FAIL
+  mark=ok; [ "$verdict" = "$want" ] || { mark="UNEXPECTED"; bad=1; }
+  log "$(printf '%-10s %-9s %-55s %-4s (%s)' "rank=count" "$mode" "test_planted_top_cause_ranks_first_by_impact" "$verdict" "$mark")"
+  log "           $(grep -E "^E +AssertionError" <<<"$res" | head -1 | sed -E 's/^E +//')"
+done
 # @learn:end failing-controls
 if [ $bad = 0 ]; then log "all sabotaged runs failed and all clean runs passed"; else log "SOME CONTROLS DID NOT BEHAVE"; fi
 exit $bad

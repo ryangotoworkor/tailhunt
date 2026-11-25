@@ -1,0 +1,91 @@
+{
+  "source": "var/logs/*.jsonl from this repo's own load tests",
+  "from": "2026-11-25 18:16:32",
+  "until": "2026-11-25 18:38:08",
+  "lines": 97940,
+  "endpoints": [
+    {
+      "svc": "gateway",
+      "route": "GET /api/search",
+      "requests": 15985,
+      "p50_ms": 2.8,
+      "p95_ms": 4079.3,
+      "p99_ms": 9384.7,
+      "error_rate": 0.017
+    },
+    {
+      "svc": "gateway",
+      "route": "POST /api/holds",
+      "requests": 6049,
+      "p50_ms": 303.2,
+      "p95_ms": 7407.3,
+      "p99_ms": 10000.9,
+      "error_rate": 0.0438
+    },
+    {
+      "svc": "inventory",
+      "route": "GET /availability",
+      "requests": 15984,
+      "p50_ms": 0.5,
+      "p95_ms": 4077.8,
+      "p99_ms": 9383.0,
+      "error_rate": 0.0169
+    },
+    {
+      "svc": "inventory",
+      "route": "POST /holds",
+      "requests": 6049,
+      "p50_ms": 302.7,
+      "p95_ms": 7406.9,
+      "p99_ms": 10000.4,
+      "error_rate": 0.0438
+    },
+    {
+      "svc": "profile",
+      "route": "GET /profile",
+      "requests": 15984,
+      "p50_ms": 0.0,
+      "p95_ms": 0.0,
+      "p99_ms": 0.1,
+      "error_rate": 0.0
+    },
+    {
+      "svc": "quote",
+      "route": "GET /quote",
+      "requests": 5794,
+      "p50_ms": 300.4,
+      "p95_ms": 301.3,
+      "p99_ms": 302.2,
+      "error_rate": 0.0
+    },
+    {
+      "svc": "risk",
+      "route": "GET /score",
+      "requests": 15984,
+      "p50_ms": 0.0,
+      "p95_ms": 0.0,
+      "p99_ms": 0.1,
+      "error_rate": 0.0
+    },
+    {
+      "svc": "search",
+      "route": "GET /search",
+      "requests": 15984,
+      "p50_ms": 1.2,
+      "p95_ms": 4079.0,
+      "p99_ms": 9383.9,
+      "error_rate": 0.0169
+    }
+  ],
+  "windows": 48,
+  "spike_windows": 14,
+  "spike_db_wait_share_median": 0.999,
+  "calm_db_wait_share_median": 0.002,
+  "correlation": {
+    "joined_requests": 15984,
+    "pearson_gateway_vs_db_wait": 1.0,
+    "slow_requests": 2485,
+    "slow_db_wait_share": 0.999,
+    "fast_db_wait_share": 0.576
+  }
+}
