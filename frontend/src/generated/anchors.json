@@ -147,12 +147,12 @@
   "record-frame": {
     "path": "video/record.mjs",
     "start": 35,
-    "end": 80
+    "end": 86
   },
   "record-pacing": {
     "path": "video/record.mjs",
-    "start": 152,
-    "end": 165
+    "start": 158,
+    "end": 171
   },
   "reqlog-line": {
     "path": "internal/obs/reqlog.go",

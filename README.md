@@ -121,7 +121,30 @@ Other scripts: `scripts/bench.sh` (load test, ~5 min), `scripts/profile.sh` (ppr
 `scripts/failing-controls.sh` switches each protection off behind the test's back and requires that test to **fail**, then runs it again with nothing switched off and requires it to **pass**. Measured output (`docs/results/failing-controls.txt`):
 
 ```
-FAILING_CONTROLS
+timeout    sabotaged TestFix_AcquireTimeoutFailsFastInsteadOfQueueing        FAIL (ok)
+           incident_test.go:132: slowest availability 4602 ms with an 80 ms acquire timeout; want <= 300
+timeout    clean     TestFix_AcquireTimeoutFailsFastInsteadOfQueueing        PASS (ok)
+           incident_test.go:130: availability: n=200 p50=81.0ms p99=89.4ms err=90.50% | holds: p99=4310ms err=0.00% | pool wait_count=344 wait=80441ms
+bulkhead   sabotaged TestFix_BulkheadReservesConnectionsForAvailability      FAIL (ok)
+           incident_test.go:122: availability p99 3529.7 ms, errors 0.00% with the bulkhead
+bulkhead   clean     TestFix_BulkheadReservesConnectionsForAvailability      PASS (ok)
+           incident_test.go:120: availability: n=200 p50=1.8ms p99=6.7ms err=0.00% | holds: p99=606ms err=72.00% | pool wait_count=0 wait=0ms
+txscope    sabotaged TestFix_QuoteOutsideTxReleasesTheConnection             FAIL (ok)
+           incident_test.go:113: availability p99 4251.4 ms with quote outside the tx; want <= 100
+txscope    clean     TestFix_QuoteOutsideTxReleasesTheConnection             PASS (ok)
+           incident_test.go:111: availability: n=200 p50=1.8ms p99=20.8ms err=0.00% | holds: p99=313ms err=0.00% | pool wait_count=0 wait=0ms
+quoteguard sabotaged TestFix_QuoteGuardBoundsHoldLatencyAndOpensTheBreaker   FAIL (ok)
+           incident_test.go:147: hold latencies against a 2 s quote: [2.012s], breaker closed
+quoteguard clean     TestFix_QuoteGuardBoundsHoldLatencyAndOpensTheBreaker   PASS (ok)
+           incident_test.go:147: hold latencies against a 2 s quote: [802ms 801ms 801ms 801ms 801ms 0s], breaker open
+all        sabotaged TestFix_AllLayersKeepAvailabilityFast                   FAIL (ok)
+           incident_test.go:101: availability p99 4106.9 ms (want <= 100), errors 0.00% (want <= 1%)
+all        clean     TestFix_AllLayersKeepAvailabilityFast                   PASS (ok)
+           incident_test.go:99: availability: n=200 p50=1.9ms p99=6.1ms err=0.00% | holds: p99=316ms err=0.00% | pool wait_count=0 wait=0ms
+rank=count sabotaged test_planted_top_cause_ranks_first_by_impact            FAIL (ok)
+           AssertionError: analysis ranks dependency_timeout first (rank_by=count)
+rank=count clean     test_planted_top_cause_ranks_first_by_impact            PASS (ok)
+all sabotaged runs failed and all clean runs passed
 ```
 
 The script itself had a bug on its first run: on macOS's bash 3.2 the "clean" runs never started (an empty array under `set -u`), and it reported `none (UNEXPECTED)` instead of passing. The check requires seeing PASS rather than not seeing FAIL, so it went red instead of silently green ([problems.md #3](docs/problems.md#q03-bash32-empty-array)).

@@ -41,6 +41,12 @@ async function frame(selector, shape = 'box') {
   const loc = page.locator(selector).first()
   await loc.waitFor({ state: 'visible', timeout: 20_000 })
   await loc.scrollIntoViewIfNeeded()
+  // "in view" for Playwright can mean partly in view; the frame needs all of it
+  await loc.evaluate((el) => {
+    const r = el.getBoundingClientRect()
+    if (r.top < 0 || r.bottom > innerHeight) el.scrollIntoView({ block: r.height < innerHeight ? 'center' : 'start' })
+  })
+  await page.waitForTimeout(150)
   await loc.evaluate((el, shape) => {
     if (!document.getElementById('th-frame-css')) {
       const css = document.createElement('style')
