@@ -37,7 +37,7 @@ func Lookup(user string) Profile {
 }
 
 // Handler serves GET /profile?user=.
-func Handler() http.Handler {
+func Handler() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", platform.Health)
 	mux.HandleFunc("GET /profile", func(w http.ResponseWriter, r *http.Request) {

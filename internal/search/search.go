@@ -30,7 +30,7 @@ type Response struct {
 }
 
 // Handler mounts GET /search?city=&checkin=&nights=&user=.
-func (s *Server) Handler() http.Handler {
+func (s *Server) Handler() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", platform.Health)
 	mux.HandleFunc("GET /search", s.search)

@@ -1,6 +1,7 @@
 # tailhunt: six Go services on one Postgres.
 # Host ports: gateway 8880, search 8881, inventory 8882, quote 8883,
-# profile 8884, risk 8885, Postgres 54389.
+# profile 8884, risk 8885, Postgres 54389, Jaeger UI 16698 (OTLP 4337 grpc /
+# 4338 http), Prometheus 9198, Grafana 3098. Total memory cap ~1.0 GiB.
 # Always run with: docker-compose -p tailhunt ...
 name: tailhunt
 
@@ -15,6 +16,10 @@ x-go: &go
     QUOTE_URL: http://quote:8883
     PROFILE_URL: http://profile:8884
     RISK_URL: http://risk:8885
+    OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+    LOG_DIR: /logs
+    GOMEMLIMIT: 40MiB
+  volumes: ["./var/logs:/logs"]
 
 services:
   postgres:
@@ -72,6 +77,36 @@ services:
     <<: *go
     command: ["risk"]
     ports: ["8885:8885"]
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.76.0
+    mem_limit: 160m
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+      MEMORY_MAX_TRACES: "8000"
+    ports: ["16698:16686", "4337:4317", "4338:4318"]
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    mem_limit: 160m
+    volumes: ["./deploy/prometheus:/etc/prometheus:ro"]
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=3h"]
+    ports: ["9198:9090"]
+
+  grafana:
+    image: grafana/grafana:12.2.1
+    mem_limit: 200m
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/tailhunt.json
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_PLUGINS_PREINSTALL_DISABLED: "true"
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports: ["3098:3000"]
 
 volumes:
   pgdata:

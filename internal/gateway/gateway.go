@@ -23,7 +23,7 @@ type Server struct {
 }
 
 // Handler mounts the public API.
-func (s *Server) Handler() http.Handler {
+func (s *Server) Handler() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", platform.Health)
 	mux.HandleFunc("POST /api/login", s.login)

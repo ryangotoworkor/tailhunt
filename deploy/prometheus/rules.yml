@@ -1,0 +1,25 @@
+# The two alerts the runbook starts from. Short windows and "for" times so
+# the demo fires within ~15 s; production would use minutes.
+groups:
+  - name: tailhunt
+    interval: 2s
+    rules:
+      # @learn:alert-rules
+      - alert: SearchP99High
+        expr: |
+          histogram_quantile(0.99, sum by (le) (rate(tailhunt_http_server_duration_seconds_bucket{svc="gateway",route="GET /api/search"}[20s]))) > 0.3
+        for: 6s
+        labels: {severity: page, team: search}
+        annotations:
+          summary: "search p99 is {{ $value | humanizeDuration }} (threshold 300ms)"
+          runbook: docs/runbook.md
+      - alert: InventoryDBPoolSaturated
+        expr: |
+          max_over_time(go_sql_in_use_connections{db_name="inventory"}[20s]) >= on (instance) go_sql_max_open_connections{db_name="inventory"}
+          and on (instance) rate(go_sql_wait_count_total{db_name="inventory"}[20s]) > 1
+        for: 6s
+        labels: {severity: ticket, team: inventory}
+        annotations:
+          summary: "inventory pool full, {{ $value | printf \"%.0f\" }} in use, callers are queueing"
+          runbook: docs/runbook.md
+      # @learn:end alert-rules

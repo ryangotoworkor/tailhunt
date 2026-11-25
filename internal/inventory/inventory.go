@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/ryangotoworkor/tailhunt/internal/obs"
 	"github.com/ryangotoworkor/tailhunt/internal/platform"
 )
 
@@ -26,14 +27,18 @@ type Server struct {
 	DB      *sql.DB
 	Quote   *QuoteClient
 	HoldTTL time.Duration // how long an unpaid hold keeps the room (default 2m)
+	Diag    *sql.DB       // one-connection pool for pg_stat_activity
+	AppName string        // application_name of the main pool (default tailhunt-inventory)
 }
 
 // Handler mounts the routes.
-func (s *Server) Handler() http.Handler {
+func (s *Server) Handler() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", platform.Health)
 	mux.HandleFunc("GET /availability", s.availability)
 	mux.HandleFunc("POST /holds", s.hold)
+	mux.HandleFunc("GET /debug/dbstats", s.dbstats)
+	mux.HandleFunc("GET /debug/pg-activity", s.pgActivity)
 	return mux
 }
 
@@ -67,7 +72,15 @@ func (s *Server) availability(w http.ResponseWriter, r *http.Request) {
 		platform.Error(w, http.StatusBadRequest, msg)
 		return
 	}
-	rows, err := s.DB.QueryContext(r.Context(), availabilitySQL, city, checkin.Format("2006-01-02"), nights)
+	conn, err := s.acquire(r.Context(), "availability")
+	if err != nil {
+		platform.Error(w, http.StatusServiceUnavailable, "db pool: "+err.Error())
+		return
+	}
+	defer conn.Close()
+	ctx, span := obs.Tracer().Start(r.Context(), "db.query availability")
+	defer span.End()
+	rows, err := conn.QueryContext(ctx, availabilitySQL, city, checkin.Format("2006-01-02"), nights)
 	if err != nil {
 		platform.Error(w, http.StatusInternalServerError, err.Error())
 		return

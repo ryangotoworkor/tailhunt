@@ -33,7 +33,7 @@ func Price(hotelID int, night, tier string) int {
 type Server struct{}
 
 // Handler serves GET /quote?hotel=&night=&tier=.
-func (s *Server) Handler() http.Handler {
+func (s *Server) Handler() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", platform.Health)
 	mux.HandleFunc("GET /quote", s.quote)

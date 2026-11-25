@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/ryangotoworkor/tailhunt/internal/obs"
 	"github.com/ryangotoworkor/tailhunt/internal/platform"
 )
 
@@ -68,7 +69,14 @@ func (s *Server) placeHold(ctx context.Context, req HoldRequest) (Hold, error) {
 // Postgres shows the session as "idle in transaction" while we wait.
 // @learn:hold-legacy
 func (s *Server) holdQuoteInsideTx(ctx context.Context, req HoldRequest) (Hold, error) {
-	tx, err := s.DB.BeginTx(ctx, nil)
+	conn, err := s.acquire(ctx, "hold")
+	if err != nil {
+		return Hold{}, err
+	}
+	defer conn.Close()
+	ctx, span := obs.Tracer().Start(ctx, "db.tx hold")
+	defer span.End()
+	tx, err := conn.BeginTx(ctx, nil)
 	if err != nil {
 		return Hold{}, err
 	}

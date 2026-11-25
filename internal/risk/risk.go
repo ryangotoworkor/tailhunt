@@ -25,7 +25,7 @@ func Assess(user, city string) Score {
 }
 
 // Handler serves GET /score?user=&city=.
-func Handler() http.Handler {
+func Handler() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", platform.Health)
 	mux.HandleFunc("GET /score", func(w http.ResponseWriter, r *http.Request) {
