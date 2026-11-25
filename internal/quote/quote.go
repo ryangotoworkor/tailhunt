@@ -5,6 +5,7 @@ package quote
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/ryangotoworkor/tailhunt/internal/platform"
 )
@@ -30,13 +31,17 @@ func Price(hotelID int, night, tier string) int {
 }
 
 // Server is the quote service.
-type Server struct{}
+type Server struct {
+	fault faultBox
+}
 
 // Handler serves GET /quote?hotel=&night=&tier=.
 func (s *Server) Handler() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", platform.Health)
 	mux.HandleFunc("GET /quote", s.quote)
+	mux.HandleFunc("GET /admin/fault", s.fault.handle)
+	mux.HandleFunc("POST /admin/fault", s.fault.handle)
 	return mux
 }
 
@@ -46,6 +51,13 @@ func (s *Server) quote(w http.ResponseWriter, r *http.Request) {
 	if err != nil || q.Get("night") == "" {
 		platform.Error(w, http.StatusBadRequest, "hotel and night are required")
 		return
+	}
+	if d := s.fault.delay(); d > 0 {
+		select {
+		case <-time.After(d):
+		case <-r.Context().Done():
+			return
+		}
 	}
 	tier := q.Get("tier")
 	if tier == "" {

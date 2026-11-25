@@ -45,6 +45,8 @@ services:
       <<: *goenv
       DATABASE_URL: postgres://tailhunt:tailhunt@postgres:5432/tailhunt?application_name=tailhunt-gateway
       JWT_SECRET: ${JWT_SECRET:-dev-only-not-a-real-secret}
+      PROM_URL: http://prometheus:9090
+      JAEGER_QUERY_URL: http://jaeger:16686
     ports: ["8880:8880"]
     depends_on: {postgres: {condition: service_healthy}, search: {condition: service_started}, inventory: {condition: service_started}}
 

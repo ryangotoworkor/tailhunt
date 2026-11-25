@@ -4,6 +4,7 @@ package main
 import (
 	"context"
 	"log/slog"
+	"net/http"
 	"os"
 	"time"
 
@@ -31,6 +32,18 @@ func main() {
 		Client:       obs.Client(10 * time.Second),
 		Accounts:     accounts,
 		Secret:       []byte(platform.Env("JWT_SECRET", gateway.DevSecret)),
+		QuoteURL:     platform.Env("QUOTE_URL", "http://localhost:8883"),
+		PromURL:      platform.Env("PROM_URL", "http://localhost:9198"),
+		JaegerURL:    platform.Env("JAEGER_QUERY_URL", "http://localhost:16698"),
+		Window:       &gateway.Window{},
 	}
-	platform.Run("gateway", ":"+platform.Env("PORT", "8880"), obs.Wrap("gateway", s.Handler()), stop, func(context.Context) { _ = accounts.Close() })
+	s.Traffic = &gateway.Traffic{
+		Base:   "http://localhost:" + platform.Env("PORT", "8880"),
+		Client: &http.Client{Timeout: 10 * time.Second},
+		Token: func() string {
+			t, _ := s.Issue("loadgen", "oncall", "basic", 24*time.Hour)
+			return t
+		},
+	}
+	platform.Run("gateway", ":"+platform.Env("PORT", "8880"), obs.Wrap("gateway", s.Handler(), s.Window.Observe), stop, func(context.Context) { _ = accounts.Close() })
 }

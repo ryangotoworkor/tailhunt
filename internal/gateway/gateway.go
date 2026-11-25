@@ -16,10 +16,13 @@ import (
 
 // Server is the gateway.
 type Server struct {
-	SearchURL, InventoryURL string
-	Client                  *http.Client
-	Accounts                *sql.DB // its own small pool; never shares inventory's
-	Secret                  []byte
+	SearchURL, InventoryURL, QuoteURL string
+	PromURL, JaegerURL                string
+	Client                            *http.Client
+	Accounts                          *sql.DB // its own small pool; never shares inventory's
+	Secret                            []byte
+	Window                            *Window
+	Traffic                           *Traffic
 }
 
 // Handler mounts the public API.
@@ -30,6 +33,7 @@ func (s *Server) Handler() *http.ServeMux {
 	mux.HandleFunc("GET /api/me", s.authed("", func(w http.ResponseWriter, r *http.Request) { platform.JSON(w, 200, ClaimsFrom(r.Context())) }))
 	mux.HandleFunc("GET /api/search", s.authed("", s.search))
 	mux.HandleFunc("POST /api/holds", s.authed("", s.hold))
+	s.mountAdmin(mux)
 	return mux
 }
 
