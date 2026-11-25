@@ -23,7 +23,9 @@ type Hotel struct {
 
 // Server is the inventory service.
 type Server struct {
-	DB *sql.DB
+	DB      *sql.DB
+	Quote   *QuoteClient
+	HoldTTL time.Duration // how long an unpaid hold keeps the room (default 2m)
 }
 
 // Handler mounts the routes.
@@ -31,6 +33,7 @@ func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", platform.Health)
 	mux.HandleFunc("GET /availability", s.availability)
+	mux.HandleFunc("POST /holds", s.hold)
 	return mux
 }
 

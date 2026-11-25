@@ -36,8 +36,12 @@ services:
     <<: *go
     build: .
     command: ["gateway"]
+    environment:
+      <<: *goenv
+      DATABASE_URL: postgres://tailhunt:tailhunt@postgres:5432/tailhunt?application_name=tailhunt-gateway
+      JWT_SECRET: ${JWT_SECRET:-dev-only-not-a-real-secret}
     ports: ["8880:8880"]
-    depends_on: [search, inventory]
+    depends_on: {postgres: {condition: service_healthy}, search: {condition: service_started}, inventory: {condition: service_started}}
 
   search:
     <<: *go
