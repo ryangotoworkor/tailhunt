@@ -1,7 +1,7 @@
 # tailhunt: six Go services on one Postgres.
 # Host ports: gateway 8880, search 8881, inventory 8882, quote 8883,
 # profile 8884, risk 8885, Postgres 54389, Jaeger UI 16698 (OTLP 4337 grpc /
-# 4338 http), Prometheus 9198, Grafana 3098. Total memory cap ~1.04 GiB.
+# 4338 http), Prometheus 9198, Grafana 3098. Total memory cap ~1.09 GiB.
 # Always run with: docker-compose -p tailhunt ...
 name: tailhunt
 
@@ -42,8 +42,13 @@ services:
     <<: *go
     build: .
     command: ["gateway"]
+    # More than the other services: during the learn run it holds the run's
+    # evidence (traces, Prometheus ranges, logs) while the fault is active;
+    # at 48m it was OOM-killed on the p99 stage and lost the run.
+    mem_limit: 96m
     environment:
       <<: *goenv
+      GOMEMLIMIT: 80MiB
       DATABASE_URL: postgres://tailhunt:tailhunt@postgres:5432/tailhunt?application_name=tailhunt-gateway
       JWT_SECRET: ${JWT_SECRET:-dev-only-not-a-real-secret}
       PROM_URL: http://prometheus:9090

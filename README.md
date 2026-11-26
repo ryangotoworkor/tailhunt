@@ -2,9 +2,9 @@
 
 **Six Go services for hotel availability search that reproduce an intermittent p99 spike caused by database connection-pool exhaustion (a booking transaction holds its connection while it calls the pricing service), trace it to the cause with traces, `sql.DBStats` and `pg_stat_activity`, fix it in four layers that each have a test which fails when the layer is removed, and rank six months of synthetic alert history to show where this failure class sits.**
 
-[![learn mode](docs/learn-preview.gif)](https://github.com/ryangotoworkor/tailhunt/releases/tag/learn-video)
+[![learn mode](docs/learn-preview.gif)](docs/videos/README.md)
 
-Teaching videos: one short video per investigation stage in [`docs/videos/`](docs/videos/README.md), one per daily problem in `docs/videos/problems/`, and the full walkthrough on the [learn-video release](https://github.com/ryangotoworkor/tailhunt/releases/tag/learn-video). They also play inside the app at `/learn`.
+Teaching videos: one short video per investigation stage in [`docs/videos/`](docs/videos/README.md), one per daily problem in `docs/videos/problems/`. They also play inside the app at `/learn`. The Chinese narration is synthesized locally (CosyVoice 2 with its bundled sample voice) and checked back with local whisper.
 
 中文教程（八章，每章一个 git tag）：[docs/tutorial/](docs/tutorial/README.md) · 排查 runbook：[docs/runbook.md](docs/runbook.md) · 日常问题与解决（9 个）：[docs/problems.md](docs/problems.md) · 面试题（28 题）：[docs/interview.md](docs/interview.md) · 告警历史分析报告：[analysis/report.md](analysis/report.md)
 
@@ -94,7 +94,7 @@ open http://localhost:5188   # oncall / oncall-demo → 教学模式 at /learn
 | Prometheus | http://localhost:9198 |
 | Grafana | http://localhost:3098, dashboard `deploy/grafana/dashboards/tailhunt.json` |
 
-Container memory is capped at about 1.04 GiB in total (Postgres 192m, six Go services 48m each, Jaeger 200m, Prometheus 160m, Grafana 200m). The compose project is always `tailhunt`.
+Container memory is capped at about 1.09 GiB in total (Postgres 192m, the gateway 96m, the other five Go services 48m each, Jaeger 200m, Prometheus 160m, Grafana 200m). The gateway got more after it was OOM-killed mid learn run at 48m. The compose project is always `tailhunt`.
 
 Other scripts: `scripts/bench.sh` (load test, ~5 min), `scripts/profile.sh` (pprof, ~90 s), `scripts/failing-controls.sh` (~2 min), `scripts/analyze.sh` (both analyses; creates `.venv` from `analysis/requirements.txt`).
 

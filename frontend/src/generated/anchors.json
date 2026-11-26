@@ -71,8 +71,8 @@
   },
   "jaeger-memory": {
     "path": "docker-compose.yml",
-    "start": 87,
-    "end": 98
+    "start": 92,
+    "end": 103
   },
   "jwt-check": {
     "path": "internal/gateway/auth.go",
