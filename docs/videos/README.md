@@ -27,3 +27,4 @@
 - [`q07-window-by-finish.mp4`](problems/q07-window-by-finish.mp4) — 修好了，页面却说九十九分位还是九秒
 - [`q08-trace-root-late.mp4`](problems/q08-trace-root-late.mp4) — trace 瀑布图偶尔少了第一跳
 - [`q09-naive-alert-ranking.mp4`](problems/q09-naive-alert-ranking.mp4) — 按告警数量排，会把精力花错地方
+- [`q10-create-db-race.mp4`](problems/q10-create-db-race.mp4) — 第一次在 GitHub 上跑持续集成，测试库已经存在

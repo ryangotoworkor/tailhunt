@@ -284,3 +284,55 @@ if err == nil && acquire != nil && root {
 **怎么证明**：`test_planted_top_cause_ranks_first_by_impact` 不经过 SQL、直接从原始数据算真值再比对。`TAILHUNT_ANALYSIS_RANK=count` 换成按次数，测试变红：`analysis ranks dependency_timeout first (rank_by=count)`。
 
 **面试怎么讲**：团队想知道下季度该先治哪类故障（S）。我用 SQL 合并重复告警、按时间关联事故，再用 pandas 排名（T）。按次数和按告警量都会把人引到错的地方，按总影响才是连接池，所以 runbook 和告警规则优先围绕它做（A）。结论用一个可以失败的测试守着；数据是合成的，简历上那段的真实数字是公司里的结果（R）。
+
+
+<a id="q10-create-db-race"></a>
+## 10. 第一次在 GitHub 上跑 CI：测试库「已经存在」（真实踩坑）
+
+**现象**：仓库推到 GitHub，第一次 CI 的 go job 只红了一个测试，而且红在第一行：
+
+```text
+--- FAIL: TestSlowQuoteShowsAsIdleInTransaction (0.02s)
+    diag_test.go:18: ERROR: duplicate key value violates unique constraint "pg_database_datname_index" (SQLSTATE 23505)
+```
+
+本机跑了几十遍都没见过。
+
+**在哪里**：修复后 [pgtest.go#create-db](../internal/pgtest/pgtest.go#create-db)，测试 [pgtest_test.go#create-db-test](../internal/pgtest/pgtest_test.go#create-db-test)；修复前 [create_db_before.go#create-db-before](problems/snippets/create_db_before.go#create-db-before)。
+
+**怎么定位**
+
+- 报错不是测试逻辑，是建测试库那一步：`pg_database` 上的唯一键冲突，意思是有人同时在建同一个库。
+- 旧写法是「先查有没有，没有就建」。`go test ./...` 会把几个包放在几个进程里并行跑，CI 上的 Postgres 是空的，两个包同时查到「没有」，同时去建，后到的那个就撞了。
+- 本机为什么从来没撞：库早就建好了，「没有」这条路径根本走不到。在本机把库删掉连跑三遍旧代码也没复现，因为各包编译完的时间错开了，窗口太窄。
+- 所以写了一个确定能复现的测试：八个 goroutine 同时去建同一个新库。
+
+**怎么解决**：建库失败时再查一次，库已经在了就算成功（输给别人没关系，只要最后库存在）。
+
+```go
+// 修复前
+if !exists {
+	if _, err := admin.ExecContext(ctx, fmt.Sprintf(`CREATE DATABASE %q`, name)); err != nil {
+		t.Fatal(err)
+	}
+}
+// 修复后
+if _, err := admin.ExecContext(ctx, fmt.Sprintf(`CREATE DATABASE %q`, name)); err != nil {
+	if ok, err2 := exists(); err2 == nil && ok {
+		return nil // another process created it first
+	}
+	return err
+}
+```
+
+**怎么证明**：`TestEnsureDBConcurrentCallersAllSucceed` 在旧逻辑下八个调用里七个报同样的错：
+
+```text
+pgtest_test.go:41: caller 0: ERROR: duplicate key value violates unique constraint "pg_database_datname_index" (SQLSTATE 23505)
+...
+--- FAIL: TestEnsureDBConcurrentCallersAllSucceed (0.06s)
+```
+
+修复后连跑三遍都过；推上去以后 CI 是绿的。
+
+**面试怎么讲**：项目推上 GitHub 后，CI 第一次跑就有个测试在建库时报唯一键冲突，本机从没见过（S）。我要判断是测试本身的问题还是环境差异（T）。我从报错认出是并发建库，找到「先查后建」的竞态，因为本机库早就在所以从来走不到；写了一个八个协程同时建库的测试稳定复现它，再改成「建失败就再查一次」（A）。旧逻辑八个里七个失败，修复后全过，CI 也绿了（R）。

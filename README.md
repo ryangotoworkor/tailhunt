@@ -6,7 +6,7 @@
 
 Teaching videos: one short video per investigation stage in [`docs/videos/`](docs/videos/README.md), one per daily problem in `docs/videos/problems/`. They also play inside the app at `/learn`. The Chinese narration is synthesized locally (CosyVoice 2 with its bundled sample voice) and checked back with local whisper.
 
-中文教程（八章，每章一个 git tag）：[docs/tutorial/](docs/tutorial/README.md) · 排查 runbook：[docs/runbook.md](docs/runbook.md) · 日常问题与解决（9 个）：[docs/problems.md](docs/problems.md) · 面试题（28 题）：[docs/interview.md](docs/interview.md) · 告警历史分析报告：[analysis/report.md](analysis/report.md)
+中文教程（八章，每章一个 git tag）：[docs/tutorial/](docs/tutorial/README.md) · 排查 runbook：[docs/runbook.md](docs/runbook.md) · 日常问题与解决（10 个）：[docs/problems.md](docs/problems.md) · 面试题（28 题）：[docs/interview.md](docs/interview.md) · 告警历史分析报告：[analysis/report.md](analysis/report.md)
 
 ## Results (measured in this repo)
 
@@ -111,7 +111,7 @@ Other scripts: `scripts/bench.sh` (load test, ~5 min), `scripts/profile.sh` (ppr
 
 | suite | count | what it covers | command |
 |---|---:|---|---|
-| Go | 28 test functions (34 with subtests) | units (JWT, window, loadgen, breaker, bulkhead, ranking), Postgres integration (holds, sweeper, `idle in transaction` signature, pool waits), and load-shaped incident/fix tests | `go test ./...` (needs Postgres on :54389) |
+| Go | 29 test functions (35 with subtests) | units (JWT, window, loadgen, breaker, bulkhead, ranking), Postgres integration (holds, sweeper, `idle in transaction` signature, pool waits), and load-shaped incident/fix tests | `go test ./...` (needs Postgres on :54389) |
 | Python | 9 | the alert analysis recovers the planted answer; request-log SQL on a hand-built log | `.venv/bin/python -m pytest -q analysis` |
 | Playwright e2e | 7 | the whole learn run through the UI on the live stack, source links point at real lines, interview/problems tabs, analysis, console, runbook | `npx playwright test -c e2e/playwright.config.ts` |
 | anchors | 1 gate | every 看源码 link: fresh, existing, right file, no dead anchors | `node scripts/check_anchors.mjs` |

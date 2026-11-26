@@ -29,6 +29,21 @@
     "start": 11,
     "end": 25
   },
+  "create-db": {
+    "path": "internal/pgtest/pgtest.go",
+    "start": 56,
+    "end": 78
+  },
+  "create-db-before": {
+    "path": "docs/problems/snippets/create_db_before.go",
+    "start": 10,
+    "end": 18
+  },
+  "create-db-test": {
+    "path": "internal/pgtest/pgtest_test.go",
+    "start": 15,
+    "end": 45
+  },
   "cut-anchor": {
     "path": "scripts/build_problem_videos.mjs",
     "start": 27,

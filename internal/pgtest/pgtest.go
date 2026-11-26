@@ -41,14 +41,8 @@ func DSN(t testing.TB, name, app string) string {
 		}
 		t.Skipf("postgres not reachable (%v); start it with docker-compose -p tailhunt up -d postgres", err)
 	}
-	var exists bool
-	if err := admin.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM pg_database WHERE datname = $1)`, name).Scan(&exists); err != nil {
+	if err := ensureDB(ctx, admin, name); err != nil {
 		t.Fatal(err)
-	}
-	if !exists {
-		if _, err := admin.ExecContext(ctx, fmt.Sprintf(`CREATE DATABASE %q`, name)); err != nil {
-			t.Fatal(err)
-		}
 	}
 	u, _ := url.Parse(Server())
 	u.Path = "/" + name
@@ -57,3 +51,29 @@ func DSN(t testing.TB, name, app string) string {
 	u.RawQuery = q.Encode()
 	return u.String()
 }
+
+// @learn:create-db
+// ensureDB creates the database unless it exists. go test ./... runs
+// packages in parallel processes, and on a fresh Postgres (CI) two of
+// them can both find no database and both create it; the loser gets a
+// duplicate-key error. Losing that race is fine as long as the database
+// exists afterwards.
+func ensureDB(ctx context.Context, admin *sql.DB, name string) error {
+	exists := func() (bool, error) {
+		var ok bool
+		err := admin.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM pg_database WHERE datname = $1)`, name).Scan(&ok)
+		return ok, err
+	}
+	if ok, err := exists(); err != nil || ok {
+		return err
+	}
+	if _, err := admin.ExecContext(ctx, fmt.Sprintf(`CREATE DATABASE %q`, name)); err != nil {
+		if ok, err2 := exists(); err2 == nil && ok {
+			return nil // another process created it first
+		}
+		return err
+	}
+	return nil
+}
+
+// @learn:end create-db
